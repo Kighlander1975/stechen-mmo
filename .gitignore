@@ -1,0 +1,39 @@
+# Private/local project notes
+/_docs/
+
+# Root environment files
+.env
+.env.*
+!.env.example
+
+# Root dependencies
+/vendor/
+/node_modules/
+
+# Laravel dependencies and runtime folders
+/laravel-app/vendor/
+/laravel-app/node_modules/
+/laravel-app/storage/*.key
+/laravel-app/storage/framework/cache/data/*
+/laravel-app/storage/framework/sessions/*
+/laravel-app/storage/framework/views/*
+/laravel-app/storage/logs/*
+/laravel-app/public/build
+/laravel-app/public/hot
+
+# HomeServer dependencies and environment
+/homeserver/node_modules/
+/homeserver/.env
+/homeserver/.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
