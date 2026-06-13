@@ -271,13 +271,15 @@ docs/DEPLOYMENT.md
 
 ---
 
-## 11. Abgrenzung zur bestehenden Helper-Seite
+## 11. Abgrenzung zu bestehenden Projekten
 
-Die bestehende Seite `stechen-helper.de` dient aktuell als Regel- und Hilfsgrundlage.
+`stechen-mmo` ist ein eigenständiges Softwareprojekt zur digitalen Umsetzung eines Mehrspieler-Kartenspiels.
 
-**stechen-mmo** ist davon abzugrenzen als eigenständige Multiplayer-Webanwendung.
+Das Projekt steht in keiner technischen, organisatorischen oder offiziellen Verbindung zu bestehenden Webseiten, Regelübersichten oder Hilfsprojekten rund um das zugrunde liegende Live-Spiel.
 
-Ziel von **stechen-mmo** ist nicht nur die Unterstützung beim Punktezählen, sondern die digitale Durchführung des gesamten Spiels.
+Bestehende öffentlich zugängliche Informationen können lediglich als allgemeine Orientierung zum Verständnis des Spiels dienen. Die konkrete technische Umsetzung, Architektur, Benutzerführung und Spielmodellierung von `stechen-mmo` werden unabhängig entwickelt.
+
+Ziel ist nicht die Nachbildung, Erweiterung oder Ablösung bestehender Hilfsangebote, sondern die Entwicklung einer eigenständigen Online-Spielplattform.
 
 ---
 
