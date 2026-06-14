@@ -138,9 +138,9 @@ Aufgabe der Komponente:
 ## 8. Checkliste: Basislayout
 
 - [x] Hauptlayout erstellen oder prüfen
-- [ ] Navigation anlegen
-- [ ] Startseite anlegen
-- [ ] Regeln-Link anlegen
+- [x] Navigation anlegen
+- [x] Startseite anlegen
+- [x] Regeln-Link anlegen
 - [ ] Login/Register Links vorsehen
 - [ ] Dashboard-Link für eingeloggte Nutzer vorsehen
 - [ ] Bereich für Flash-Messages vorsehen
@@ -194,7 +194,7 @@ Erste Routen sollen sauber getrennt werden.
 Öffentlich:
 
 - [x] `/`
-- [ ] `/rules`
+- [x] `/rules`
 - [ ] `/games/public` oder Platzhalter für öffentliche Spiele
 - [ ] `/login`
 - [ ] `/register`
@@ -289,14 +289,14 @@ Phase 1 gilt als abgeschlossen, wenn:
 - [x] Migrationen laufen fehlerfrei
 - [x] Vue 3 ist installiert und wird über Vite gebaut
 - [x] Eine Vue-Testkomponente wird in Blade angezeigt
-- [ ] `npm run build` funktioniert
-- [ ] Basislayout existiert
-- [ ] Startseite existiert
-- [ ] Regelseite existiert oder Platzhalter ist vorhanden
+- [x] `npm run build` funktioniert
+- [x] Basislayout existiert
+- [x] Startseite existiert
+- [x] Regelseite existiert oder Platzhalter ist vorhanden
 - [ ] Auth-Grundlage ist vorhanden oder bewusst als nächster Schritt markiert
 - [ ] Dashboard ist geschützt erreichbar
 - [ ] HomeServer-Fallback-Prinzip ist dokumentiert
-- [ ] `git status` ist sauber
+- [x] `git status` ist sauber
 - [x] Änderungen sind committed
 - [x] Änderungen sind gepusht
 
@@ -357,3 +357,4 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
