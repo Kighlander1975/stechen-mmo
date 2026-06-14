@@ -61,7 +61,7 @@ Vue wird als Inselarchitektur eingebunden.
 - [x] PHP-Version passt zu Laravel-Version
 - [x] Composer-Abhängigkeiten sind installiert
 - [x] Node-Abhängigkeiten sind installiert
-- [ ] Datenbank ist lokal angelegt
+- [x] Datenbank ist lokal angelegt
 - [ ] Datenbankzugang in `.env` ist korrekt
 - [x] `php artisan` funktioniert
 - [x] Laravel-Startseite ist erreichbar
@@ -72,9 +72,9 @@ Vue wird als Inselarchitektur eingebunden.
 
 - [x] Laravel-Version prüfen
 - [ ] `.env.example` prüfen und bei Bedarf aktualisieren
-- [ ] Datenbankverbindung testen
+- [x] Datenbankverbindung testen
 - [x] Migrationen ausführen
-- [ ] Cache-Kommandos testen
+- [x] Cache-Kommandos testen
 - [x] Lokalen Development-Server starten
 - [ ] Fehlerseite/Debug-Modus lokal prüfen
 
@@ -92,10 +92,10 @@ php artisan serve
 ## 6. Checkliste: Frontend-Grundlage
 
 - [ ] `package.json` prüfen
-- [ ] Vite-Konfiguration prüfen
+- [x] Vite-Konfiguration prüfen
 - [ ] Vue 3 installieren, falls noch nicht vorhanden
 - [x] Frontend-Abhängigkeiten installieren
-- [ ] Development-Build starten
+- [x] Development-Build starten
 - [x] Production-Build testen
 - [ ] Vue-Testkomponente erstellen
 - [ ] Vue-Testkomponente in Blade einbinden
@@ -285,7 +285,7 @@ composer test
 Phase 1 gilt als abgeschlossen, wenn:
 
 - [x] Laravel lokal startet
-- [ ] Datenbankverbindung funktioniert
+- [x] Datenbankverbindung funktioniert
 - [x] Migrationen laufen fehlerfrei
 - [ ] Vue 3 ist installiert und wird über Vite gebaut
 - [ ] Eine Vue-Testkomponente wird in Blade angezeigt
@@ -357,4 +357,5 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
 
