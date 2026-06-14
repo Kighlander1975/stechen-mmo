@@ -71,7 +71,7 @@ Vue wird als Inselarchitektur eingebunden.
 ## 5. Checkliste: Backend-Grundlage
 
 - [x] Laravel-Version prüfen
-- [ ] `.env.example` prüfen und bei Bedarf aktualisieren
+- [x] `.env.example` prüfen und bei Bedarf aktualisieren
 - [x] Datenbankverbindung testen
 - [x] Migrationen ausführen
 - [x] Cache-Kommandos testen
@@ -91,7 +91,7 @@ php artisan serve
 
 ## 6. Checkliste: Frontend-Grundlage
 
-- [ ] `package.json` prüfen
+- [x] `package.json` prüfen
 - [x] Vite-Konfiguration prüfen
 - [x] Vue 3 installieren, falls noch nicht vorhanden
 - [x] Frontend-Abhängigkeiten installieren
@@ -357,5 +357,6 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
 
 
