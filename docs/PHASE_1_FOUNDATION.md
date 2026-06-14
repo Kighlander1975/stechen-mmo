@@ -57,12 +57,12 @@ Vue wird als Inselarchitektur eingebunden.
 - [x] Branch `main` ist aktuell
 - [x] `git status` zeigt einen sauberen Working Tree
 - [x] `.env` existiert lokal
-- [ ] `APP_KEY` ist gesetzt
+- [x] `APP_KEY` ist gesetzt
 - [x] PHP-Version passt zu Laravel-Version
 - [x] Composer-Abhängigkeiten sind installiert
 - [x] Node-Abhängigkeiten sind installiert
 - [x] Datenbank ist lokal angelegt
-- [ ] Datenbankzugang in `.env` ist korrekt
+- [x] Datenbankzugang in `.env` ist korrekt
 - [x] `php artisan` funktioniert
 - [x] Laravel-Startseite ist erreichbar
 
@@ -357,6 +357,7 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
 
 
 
