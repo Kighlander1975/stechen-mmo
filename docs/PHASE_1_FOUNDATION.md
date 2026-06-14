@@ -93,13 +93,13 @@ php artisan serve
 
 - [ ] `package.json` prüfen
 - [x] Vite-Konfiguration prüfen
-- [ ] Vue 3 installieren, falls noch nicht vorhanden
+- [x] Vue 3 installieren, falls noch nicht vorhanden
 - [x] Frontend-Abhängigkeiten installieren
 - [x] Development-Build starten
 - [x] Production-Build testen
-- [ ] Vue-Testkomponente erstellen
-- [ ] Vue-Testkomponente in Blade einbinden
-- [ ] Prüfen, ob Hot Reload lokal funktioniert
+- [x] Vue-Testkomponente erstellen
+- [x] Vue-Testkomponente in Blade einbinden
+- [x] Prüfen, ob Hot Reload lokal funktioniert
 
 Nützliche Kommandos:
 
@@ -113,13 +113,13 @@ npm run build
 
 ## 7. Checkliste: Vue 3 Integration
 
-- [ ] `resources/js/app.js` oder `resources/js/app.ts` prüfen
-- [ ] Vue-App initialisieren
-- [ ] Erste Vue-Komponente erstellen
-- [ ] Mount-Punkt im Blade-Layout ergänzen
-- [ ] Datenübergabe von Blade zu Vue testen
+- [x] `resources/js/app.js` oder `resources/js/app.ts` prüfen
+- [x] Vue-App initialisieren
+- [x] Erste Vue-Komponente erstellen
+- [x] Mount-Punkt im Blade-Layout ergänzen
+- [x] Datenübergabe von Blade zu Vue testen
 - [ ] JSON-Endpoint testweise abrufen
-- [ ] Fehlerausgabe im Browser prüfen
+- [x] Fehlerausgabe im Browser prüfen
 
 Beispiel-Komponente:
 
@@ -137,14 +137,14 @@ Aufgabe der Komponente:
 
 ## 8. Checkliste: Basislayout
 
-- [ ] Hauptlayout erstellen oder prüfen
+- [x] Hauptlayout erstellen oder prüfen
 - [ ] Navigation anlegen
 - [ ] Startseite anlegen
 - [ ] Regeln-Link anlegen
 - [ ] Login/Register Links vorsehen
 - [ ] Dashboard-Link für eingeloggte Nutzer vorsehen
 - [ ] Bereich für Flash-Messages vorsehen
-- [ ] Bereich für Vue-Inseln vorsehen
+- [x] Bereich für Vue-Inseln vorsehen
 
 Mögliche Datei:
 
@@ -193,7 +193,7 @@ Erste Routen sollen sauber getrennt werden.
 
 Öffentlich:
 
-- [ ] `/`
+- [x] `/`
 - [ ] `/rules`
 - [ ] `/games/public` oder Platzhalter für öffentliche Spiele
 - [ ] `/login`
@@ -287,8 +287,8 @@ Phase 1 gilt als abgeschlossen, wenn:
 - [x] Laravel lokal startet
 - [x] Datenbankverbindung funktioniert
 - [x] Migrationen laufen fehlerfrei
-- [ ] Vue 3 ist installiert und wird über Vite gebaut
-- [ ] Eine Vue-Testkomponente wird in Blade angezeigt
+- [x] Vue 3 ist installiert und wird über Vite gebaut
+- [x] Eine Vue-Testkomponente wird in Blade angezeigt
 - [ ] `npm run build` funktioniert
 - [ ] Basislayout existiert
 - [ ] Startseite existiert
@@ -357,6 +357,3 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
-
-
-
