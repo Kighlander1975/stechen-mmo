@@ -28,7 +28,7 @@ Frontend-Build funktioniert.
 Vue 3 ist eingerichtet.
 Blade-Basislayout existiert.
 Erste Seiten sind erreichbar.
-Auth-Grundlage ist vorbereitet oder vorhanden.
+Auth-Grundlage ist bewusst für Phase 2 vorgesehen.
 Projekt ist sauber committet.
 ```
 
@@ -353,10 +353,11 @@ Ziel ist nicht Spiellogik, sondern eine saubere Basis:
 Laravel läuft.
 Vue läuft.
 Blade-Layout steht.
-Auth-Basis ist vorbereitet.
+Auth-Basis ist für Phase 2 vorgesehen.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
 
 
 
