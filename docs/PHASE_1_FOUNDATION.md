@@ -118,7 +118,7 @@ npm run build
 - [x] Erste Vue-Komponente erstellen
 - [x] Mount-Punkt im Blade-Layout ergänzen
 - [x] Datenübergabe von Blade zu Vue testen
-- [ ] JSON-Endpoint testweise abrufen
+- [x] JSON-Endpoint testweise abrufen
 - [x] Fehlerausgabe im Browser prüfen
 
 Beispiel-Komponente:
@@ -209,7 +209,7 @@ Authentifiziert:
 
 API/JSON testweise:
 
-- [ ] `/api/app-status` oder vergleichbarer Test-Endpunkt
+- [x] `/api/app-status` oder vergleichbarer Test-Endpunkt
 
 ---
 
@@ -219,11 +219,11 @@ In Phase 1 wird der HomeServer noch nicht implementiert.
 
 Trotzdem soll die Struktur vorbereitet werden.
 
-- [ ] Dokumentieren: Laravel ist autoritativ
-- [ ] Polling als MVP-Fallback festlegen
-- [ ] keine Spiellogik von externem Server abhängig machen
-- [ ] spätere Realtime-Anbindung über Adapter vorsehen
-- [ ] keine direkten Annahmen einbauen, dass WebSockets vorhanden sind
+- [x] Dokumentieren: Laravel ist autoritativ
+- [x] Polling als MVP-Fallback festlegen
+- [x] keine Spiellogik von externem Server abhängig machen
+- [x] spätere Realtime-Anbindung über Adapter vorsehen
+- [x] keine direkten Annahmen einbauen, dass WebSockets vorhanden sind
 
 Optional erste Interface-Idee dokumentieren:
 
@@ -243,17 +243,17 @@ Wenn kein Realtime-Server vorhanden ist, liefern HTTP-Endpunkte den aktuellen Zu
 
 Folgende Ordner können vorbereitet werden, auch wenn noch nicht alle Services gefüllt sind:
 
-- [ ] `app/Services`
-- [ ] `app/Services/Game`
-- [ ] `app/Services/Wallet`
-- [ ] `app/Services/Chat`
-- [ ] `app/Services/Lobby`
-- [ ] `app/Services/Realtime`
-- [ ] `app/Services/AI`
-- [ ] `resources/js/components`
-- [ ] `resources/js/components/common`
-- [ ] `resources/js/components/lobby`
-- [ ] `resources/js/components/game`
+- [x] `app/Services`
+- [x] `app/Services/Game`
+- [x] `app/Services/Wallet`
+- [x] `app/Services/Chat`
+- [x] `app/Services/Lobby`
+- [x] `app/Services/Realtime`
+- [x] `app/Services/AI`
+- [x] `resources/js/components`
+- [x] `resources/js/components/common`
+- [x] `resources/js/components/lobby`
+- [x] `resources/js/components/game`
 
 Wichtig:
 
@@ -263,13 +263,13 @@ Leere Ordner werden von Git nicht versioniert. Falls nötig später mit `.gitkee
 
 ## 13. Checkliste: Qualitätsbasis
 
-- [ ] `.editorconfig` prüfen
-- [ ] `.gitattributes` prüfen
-- [ ] Line Endings prüfen
-- [ ] `composer test` oder Testkommando prüfen
-- [ ] Basis-Test ausführen
-- [ ] README auf aktuellen Stand prüfen
-- [ ] Dokumentation verlinken
+- [x] `.editorconfig` prüfen
+- [x] `.gitattributes` prüfen
+- [x] Line Endings prüfen
+- [x] `composer test` oder Testkommando prüfen
+- [x] Basis-Test ausführen
+- [x] README auf aktuellen Stand prüfen
+- [x] Dokumentation verlinken
 
 Mögliche Kommandos:
 
@@ -295,7 +295,7 @@ Phase 1 gilt als abgeschlossen, wenn:
 - [x] Regelseite existiert oder Platzhalter ist vorhanden
 - [ ] Auth-Grundlage ist vorhanden oder bewusst als nächster Schritt markiert
 - [ ] Dashboard ist geschützt erreichbar
-- [ ] HomeServer-Fallback-Prinzip ist dokumentiert
+- [x] HomeServer-Fallback-Prinzip ist dokumentiert
 - [x] `git status` ist sauber
 - [x] Änderungen sind committed
 - [x] Änderungen sind gepusht
@@ -357,4 +357,5 @@ Auth-Basis ist vorbereitet.
 HomeServer-Fallback-Prinzip ist berücksichtigt.
 Projekt ist committbar.
 ```
+
 
