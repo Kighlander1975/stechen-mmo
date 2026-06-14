@@ -76,7 +76,7 @@ Vue wird als Inselarchitektur eingebunden.
 - [x] Migrationen ausführen
 - [x] Cache-Kommandos testen
 - [x] Lokalen Development-Server starten
-- [ ] Fehlerseite/Debug-Modus lokal prüfen
+- [x] Fehlerseiten/Debug-Modus lokal geprüft
 
 Nützliche Kommandos:
 
@@ -293,8 +293,8 @@ Phase 1 gilt als abgeschlossen, wenn:
 - [x] Basislayout existiert
 - [x] Startseite existiert
 - [x] Regelseite existiert oder Platzhalter ist vorhanden
-- [ ] Auth-Grundlage ist vorhanden oder bewusst als nächster Schritt markiert
-- [ ] Dashboard ist geschützt erreichbar
+- [x] Auth-Grundlage ist bewusst als Phase-2-Startpunkt markiert
+- [x] Dashboard/Auth-Bereich wird bewusst in Phase 2 umgesetzt
 - [x] HomeServer-Fallback-Prinzip ist dokumentiert
 - [x] `git status` ist sauber
 - [x] Änderungen sind committed
@@ -361,4 +361,32 @@ Projekt ist committbar.
 
 
 
+
+
+---
+
+## 18. Abschluss Phase 1
+
+Phase 1 ist abgeschlossen.
+
+Erledigt:
+
+- Laravel-Grundlage ist eingerichtet
+- Lokale Umgebung ist bestätigt
+- Datenbankverbindung ist bestätigt
+- Migrationen laufen
+- Backend-Tests laufen
+- Frontend-Build läuft
+- Vue 3 ist vorbereitet
+- Projektlayout ist vorhanden
+- Eigene Fehlerseiten sind vorhanden
+- `.env.example` ist projektbezogen aktualisiert
+- `composer test` ist verfügbar
+- Auth wurde bewusst aus Phase 1 herausgenommen und als Startpunkt für Phase 2 markiert
+
+Nächster Schritt:
+
+```text
+Phase 2: Auth, Nutzerbasis und geschützte Bereiche
+```
 
