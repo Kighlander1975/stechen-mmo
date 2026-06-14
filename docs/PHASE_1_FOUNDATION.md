@@ -53,17 +53,17 @@ Vue wird als Inselarchitektur eingebunden.
 
 ## 4. Checkliste: Projektzustand prüfen
 
-- [ ] Repository ist lokal vorhanden
-- [ ] Branch `main` ist aktuell
-- [ ] `git status` zeigt einen sauberen Working Tree
-- [ ] `.env` existiert lokal
+- [x] Repository ist lokal vorhanden
+- [x] Branch `main` ist aktuell
+- [x] `git status` zeigt einen sauberen Working Tree
+- [x] `.env` existiert lokal
 - [ ] `APP_KEY` ist gesetzt
-- [ ] PHP-Version passt zu Laravel-Version
-- [ ] Composer-Abhängigkeiten sind installiert
-- [ ] Node-Abhängigkeiten sind installiert
+- [x] PHP-Version passt zu Laravel-Version
+- [x] Composer-Abhängigkeiten sind installiert
+- [x] Node-Abhängigkeiten sind installiert
 - [ ] Datenbank ist lokal angelegt
 - [ ] Datenbankzugang in `.env` ist korrekt
-- [ ] `php artisan` funktioniert
+- [x] `php artisan` funktioniert
 - [ ] Laravel-Startseite ist erreichbar
 
 ---
