@@ -1,29 +1,26 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
+<x-app-layout
+    header-eyebrow="Spielerkonto"
+    :header-title="'Profil verwalten, '.Auth::user()->name"
+    header-status-label="Konto aktiv"
+    header-status-tone="success"
+>
+    <div class="space-y-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20 sm:p-8">
+            <div class="max-w-2xl">
+                @include('profile.partials.update-profile-information-form')
             </div>
+        </section>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20 sm:p-8">
+            <div class="max-w-2xl">
+                @include('profile.partials.update-password-form')
             </div>
+        </section>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
+        <section class="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 shadow-xl shadow-black/20 sm:p-8">
+            <div class="max-w-2xl">
+                @include('profile.partials.delete-user-form')
             </div>
-        </div>
+        </section>
     </div>
 </x-app-layout>

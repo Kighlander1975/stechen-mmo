@@ -1,3 +1,17 @@
+@props([
+    'headerEyebrow' => null,
+    'headerTitle' => null,
+    'headerStatusLabel' => null,
+    'headerStatusTone' => null,
+])
+
+@php
+    $headerEyebrow = $headerEyebrow ?? $attributes->get('header-eyebrow');
+    $headerTitle = $headerTitle ?? $attributes->get('header-title');
+    $headerStatusLabel = $headerStatusLabel ?? $attributes->get('header-status-label');
+    $headerStatusTone = $headerStatusTone ?? $attributes->get('header-status-tone');
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -11,74 +25,14 @@
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <x-flash-toast />
+
     <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        <header class="border-b border-slate-800 bg-slate-950/80">
-            <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <a href="{{ url('/') }}" class="text-lg font-bold tracking-tight text-amber-400">
-                    Stechen-MMO
-                </a>
-
-                <div class="flex items-center gap-4 text-sm">
-                    <a href="{{ url('/') }}"
-                       class="text-slate-300 transition hover:text-amber-300">
-                        Start
-                    </a>
-
-                    <a href="{{ url('/rules') }}"
-                       class="text-slate-300 transition hover:text-amber-300">
-                        Regeln
-                    </a>
-
-                    @auth
-                        <a href="{{ route('dashboard') }}"
-                           class="text-slate-300 transition hover:text-amber-300">
-                            Dashboard
-                        </a>
-
-                        @if (Auth::check() && Auth::user()->hasPermission('admin.access'))
-                            <a href="{{ route('admin.dashboard') }}"
-                               class="text-red-300 transition hover:text-red-200">
-                                Admin
-                            </a>
-                        @endif
-
-                        <a href="{{ route('profile.edit') }}"
-                           class="text-slate-300 transition hover:text-amber-300">
-                            Profil
-                        </a>
-
-                        <form method="POST" action="{{ route('logout') }}" class="inline">
-                            @csrf
-
-                            <button type="submit"
-                                    class="text-slate-300 transition hover:text-amber-300">
-                                Logout
-                            </button>
-                        </form>
-                    @else
-                        <a href="{{ route('login') }}"
-                           class="text-slate-300 transition hover:text-amber-300">
-                            Login
-                        </a>
-
-                        <a href="{{ route('register') }}"
-                           class="rounded-lg border border-amber-400/40 px-3 py-2 text-amber-300 transition hover:bg-amber-400 hover:text-slate-950">
-                            Registrieren
-                        </a>
-                    @endauth
-                </div>
-            </nav>
-        </header>
-
-        @isset($header)
-            <section class="border-b border-slate-800 bg-slate-900/60">
-                <div class="mx-auto max-w-6xl px-6 py-6">
-                    <div class="text-slate-100">
-                        {{ $header }}
-                    </div>
-                </div>
-            </section>
-        @endisset
+        <x-site-header
+            :eyebrow="$headerEyebrow ?? null"
+            :header-title="$headerTitle ?? null"
+            :status-label="$headerStatusLabel ?? null"
+            :status-tone="$headerStatusTone ?? null"
+        />
 
         <main class="mx-auto min-h-[calc(100vh-145px)] max-w-6xl px-6 py-10">
             @hasSection('content')
@@ -96,6 +50,3 @@
     </div>
 </body>
 </html>
-
-
-

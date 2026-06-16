@@ -1,20 +1,9 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
-                    Spielerkonto
-                </p>
-                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-100">
-                    Willkommen, {{ Auth::user()->name }}
-                </h1>
-            </div>
-
-            <div class="inline-flex w-fit items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-300">
-                Konto aktiv
-            </div>
-        </div>
-    </x-slot>
+<x-app-layout
+    header-eyebrow="Spielerkonto"
+    :header-title="'Willkommen, '.Auth::user()->name"
+    header-status-label="Konto aktiv"
+    header-status-tone="success"
+>
 
     <div class="space-y-8">
         <!-- Status Hinweis -->

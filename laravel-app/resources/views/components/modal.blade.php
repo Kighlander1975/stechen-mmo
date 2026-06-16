@@ -33,9 +33,11 @@ $maxWidth = [
     }"
     x-init="$watch('show', value => {
         if (value) {
+            document.documentElement.classList.add('modal-open');
             document.body.classList.add('overflow-y-hidden');
             {{ $attributes->has('focusable') ? 'setTimeout(() => firstFocusable().focus(), 100)' : '' }}
         } else {
+            document.documentElement.classList.remove('modal-open');
             document.body.classList.remove('overflow-y-hidden');
         }
     })"
@@ -60,12 +62,12 @@ $maxWidth = [
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
     >
-        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        <div class="absolute inset-0 bg-slate-950 opacity-80"></div>
     </div>
 
     <div
         x-show="show"
-        class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
+        class="mb-6 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl shadow-black/40 transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"

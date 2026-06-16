@@ -1,21 +1,9 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-sm font-medium uppercase tracking-wide text-red-400">
-                    Administration
-                </p>
-
-                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-100">
-                    Admin-Dashboard
-                </h1>
-            </div>
-
-            <div class="inline-flex w-fit items-center rounded-full border border-red-400/30 bg-red-400/10 px-3 py-1 text-sm font-medium text-red-300">
-                Zugriff über Permission: admin.access
-            </div>
-        </div>
-    </x-slot>
+<x-app-layout
+    header-eyebrow="Administration"
+    header-title="Admin-Dashboard"
+    header-status-label="Zugriff über Permission: admin.access"
+    header-status-tone="admin"
+>
 
     <div class="space-y-8">
         <section class="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 shadow-xl shadow-black/20">

@@ -1,13 +1,19 @@
-<x-layouts.app title="Regeln | Stechen-MMO">
+<x-layouts.app
+    title="Regeln | Stechen-MMO"
+    header-eyebrow="Regelwerk"
+    header-title="Spielregeln"
+    header-status-label="Informationsseite"
+    header-status-tone="neutral"
+>
     <section class="space-y-8">
-        <div class="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-xl">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-xl shadow-black/20">
             <p class="text-sm font-semibold uppercase tracking-wide text-emerald-300">
                 Spielregeln
             </p>
 
-            <h1 class="mt-3 text-3xl font-bold text-white">
+            <h2 class="mt-3 text-3xl font-bold text-white">
                 Regeln
-            </h1>
+            </h2>
 
             <p class="mt-3 max-w-3xl text-slate-200">
                 Stechen-MMO basiert auf einem Stichspiel-Prinzip. Diese Seite ist zunächst
@@ -16,7 +22,7 @@
             </p>
         </div>
 
-        <div class="rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-md">
+        <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-6 shadow-md">
             <h2 class="text-xl font-semibold text-white">
                 Geplante Regelbereiche
             </h2>

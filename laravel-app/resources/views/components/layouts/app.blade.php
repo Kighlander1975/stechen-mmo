@@ -1,3 +1,11 @@
+@props([
+    'title' => null,
+    'headerEyebrow' => null,
+    'headerTitle' => null,
+    'headerStatusLabel' => null,
+    'headerStatusTone' => null,
+])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -7,31 +15,26 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-900 text-slate-100 antialiased">
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <x-flash-toast />
-    <div class="mx-auto max-w-5xl px-6 py-8">
-        <header class="mb-8 border-b border-slate-700 pb-4">
-            <div class="flex items-center justify-between gap-4">
-                <a href="/" class="text-xl font-bold tracking-tight text-white hover:text-emerald-300">
-                    stechen-mmo
-                </a>
 
-                <nav class="flex gap-4 text-sm text-slate-200">
-                    <a href="/" class="hover:text-emerald-300">Home</a>
-                    <a href="/rules" class="hover:text-emerald-300">Regeln</a>
-                    <a href="/vue-test" class="hover:text-emerald-300">Vue-Test</a>
-                </nav>
-            </div>
-        </header>
+    <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <x-site-header
+            :eyebrow="$headerEyebrow ?? null"
+            :header-title="$headerTitle ?? null"
+            :status-label="$headerStatusLabel ?? null"
+            :status-tone="$headerStatusTone ?? null"
+        />
 
-        <main>
+        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-6xl px-6 py-10">
             {{ $slot }}
         </main>
 
-        <footer class="mt-12 border-t border-slate-700 pt-4 text-xs text-slate-400">
-            Stechen-MMO · Laravel · Vue 3 · Vite
+        <footer class="border-t border-slate-800">
+            <div class="mx-auto max-w-6xl px-6 py-6 text-sm text-slate-500">
+                Stechen-MMO · Laravel · Vue 3 · Vite
+            </div>
         </footer>
     </div>
 </body>
 </html>
-
