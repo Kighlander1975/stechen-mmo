@@ -729,28 +729,83 @@ Die genaue Phasenbenennung kann später angepasst werden.
 
 Phase 2 gilt als abgeschlossen, wenn:
 
-- [ ] Laravel Breeze mit Blade ist installiert oder eine gleichwertige Auth-Lösung ist dokumentiert
-- [ ] Registrierung funktioniert
-- [ ] Login funktioniert
-- [ ] Logout funktioniert
-- [ ] Dashboard ist geschützt erreichbar
-- [ ] Nicht eingeloggte Nutzer werden korrekt weitergeleitet
-- [ ] Eingeloggte Nutzer sehen den geschützten Bereich
-- [ ] Auth-Seiten sind optisch akzeptabel integriert
-- [ ] User-Modell bleibt sauber von Spiellogik getrennt
-- [ ] Session-Verhalten ist geprüft
-- [ ] CSRF-Verhalten ist geprüft
-- [ ] Fehlerseiten funktionieren weiterhin
-- [ ] `composer test` läuft
-- [ ] `npm run build` läuft
-- [ ] Dokumentation ist aktualisiert
-- [ ] Änderungen sind committed
-- [ ] Änderungen sind gepusht
-- [ ] `git status` ist sauber
+- [x] Laravel Breeze mit Blade ist installiert oder eine gleichwertige Auth-Lösung ist dokumentiert
+- [x] Registrierung funktioniert
+- [x] Login funktioniert
+- [x] Logout funktioniert
+- [x] Dashboard ist geschützt erreichbar
+- [x] Nicht eingeloggte Nutzer werden korrekt weitergeleitet
+- [x] Eingeloggte Nutzer sehen den geschützten Bereich
+- [x] Auth-Seiten sind optisch akzeptabel integriert
+- [x] User-Modell bleibt sauber von Spiellogik getrennt
+- [x] Session-Verhalten ist geprüft
+- [x] CSRF-Verhalten ist geprüft
+- [x] Fehlerseiten funktionieren weiterhin
+- [x] `composer test` läuft
+- [x] `npm run build` läuft
+- [x] Dokumentation ist aktualisiert
+- [x] Änderungen sind committed
+- [x] Änderungen sind gepusht
+- [x] `git status` ist sauber
 
 ---
 
-## 30. Abschlussnotiz
+## 30. Aktueller Abschlussstand
+
+Phase 2 ist technisch umgesetzt und abgeschlossen.
+
+Umgesetzt und geprüft sind:
+
+- Laravel Breeze/Auth-Struktur mit Blade-Views
+- Registrierung mit Annahme der rechtlichen Hinweise
+- Login mit Validierung und Rate-Limiting
+- Logout per POST mit CSRF-Schutz
+- Passwort-Reset-Flow auf technischer Ebene
+- geschütztes Dashboard unter `/dashboard`
+- Admin-Grundlage unter `/admin` mit Permission `admin.access`
+- erweitertes User-Modell als Auth- und Account-Grundlage
+- dunkle Projektlayouts für Auth-, App- und Fehlerseiten
+- Flash-Toast-Komponente für Statusmeldungen
+- Tests für Auth-, Profil-, Passwort- und Zugriffskontrolle
+
+Zusätzlich wurde ein expliziter Zugriffskontrolltest ergänzt:
+
+```text
+laravel-app/tests/Feature/AccessControlTest.php
+```
+
+Dieser Test deckt ab:
+
+- Gäste werden von `/dashboard` zu `/login` weitergeleitet
+- eingeloggte Nutzer können `/dashboard` sehen
+- Gäste werden von `/admin` zu `/login` weitergeleitet
+- eingeloggte Nutzer ohne `admin.access` erhalten für `/admin` einen 403-Status
+- eingeloggte Nutzer mit `admin.access` können das Admin-Dashboard sehen
+
+Aktueller Teststand nach Ergänzung des Zugriffskontrolltests:
+
+```text
+composer test
+Tests: 30 deprecated, 1 passed (74 assertions)
+```
+
+Die Deprecation-Hinweise beziehen sich auf die bekannte externe Warnung:
+
+```text
+Constant PDO::MYSQL_ATTR_SSL_CA is deprecated since 8.5, use Pdo\Mysql::ATTR_SSL_CA instead
+```
+
+Diese Warnung wird aktuell dokumentiert, aber nicht als Projektfehler gewertet.
+
+Aktueller Git-Stand zum Abschluss:
+
+- Test-Commit für Dashboard- und Admin-Zugriff wurde erstellt
+- lokale Commits wurden nach `origin/main` gepusht
+- Arbeitsbaum war vor dem Push sauber
+
+---
+
+## 31. Abschlussnotiz
 
 Phase 2 ist der Übergang von der technischen Projektgrundlage zu einer nutzbaren Spielerbasis.
 
