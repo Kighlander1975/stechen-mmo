@@ -42,6 +42,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/')
+            ->with('status', 'Du wurdest erfolgreich ausgeloggt.');
     }
 }
+

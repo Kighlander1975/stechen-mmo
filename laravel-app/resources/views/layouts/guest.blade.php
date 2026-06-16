@@ -15,6 +15,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased bg-slate-950 text-slate-100">
+        <x-flash-toast />
         <div class="min-h-screen relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/40"></div>
             <div class="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl"></div>
@@ -60,3 +61,5 @@
         </div>
     </body>
 </html>
+
+

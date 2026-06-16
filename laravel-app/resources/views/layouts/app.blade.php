@@ -10,6 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <x-flash-toast />
     <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <header class="border-b border-slate-800 bg-slate-950/80">
             <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -95,4 +96,6 @@
     </div>
 </body>
 </html>
+
+
 

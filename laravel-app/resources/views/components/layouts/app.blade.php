@@ -8,6 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-900 text-slate-100 antialiased">
+    <x-flash-toast />
     <div class="mx-auto max-w-5xl px-6 py-8">
         <header class="mb-8 border-b border-slate-700 pb-4">
             <div class="flex items-center justify-between gap-4">
@@ -33,3 +34,4 @@
     </div>
 </body>
 </html>
+
