@@ -34,6 +34,13 @@
                             Dashboard
                         </a>
 
+                        @if (Auth::check() && Auth::user()->hasPermission('admin.access'))
+                            <a href="{{ route('admin.dashboard') }}"
+                               class="text-red-300 transition hover:text-red-200">
+                                Admin
+                            </a>
+                        @endif
+
                         <a href="{{ route('profile.edit') }}"
                            class="text-slate-300 transition hover:text-amber-300">
                             Profil
@@ -88,3 +95,4 @@
     </div>
 </body>
 </html>
+

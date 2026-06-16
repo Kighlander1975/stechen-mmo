@@ -238,5 +238,34 @@
                 </a>
             </div>
         </section>
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20">
+            <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
+                Accountstatus
+            </p>
+
+            <div class="mt-4 grid gap-4 md:grid-cols-4">
+                <div>
+                    <p class="text-sm text-slate-400">Status</p>
+                    <p class="mt-1 font-semibold text-slate-100">{{ Auth::user()->accountDisplayRole() }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-slate-400">VIP</p>
+                    <p class="mt-1 font-semibold text-slate-100">{{ Auth::user()->isVip() ? 'Aktiv' : 'Inaktiv' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-slate-400">Spielberechtigung</p>
+                    <p class="mt-1 font-semibold text-slate-100">{{ Auth::user()->canPlayGame() ? 'Aktiv' : 'Nicht gesetzt' }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-slate-400">Adminzugang</p>
+                    <p class="mt-1 font-semibold text-slate-100">{{ Auth::user()->hasPermission('admin.access') ? 'Aktiv' : 'Nein' }}</p>
+                </div>
+            </div>
+        </section>
+
     </div>
 </x-app-layout>
+

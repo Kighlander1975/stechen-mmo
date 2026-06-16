@@ -28,6 +28,11 @@ Route::get('/api/app-status', function () {
     ]);
 });
 
+
+Route::get('/admin', function () {
+    return view('admin.dashboard');
+})->middleware(['auth', 'permission:admin.access'])->name('admin.dashboard');
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth'])->name('dashboard');
@@ -39,4 +44,5 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
 
