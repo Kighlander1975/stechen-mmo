@@ -11,6 +11,10 @@ Route::get('/rules', function () {
     return view('rules');
 });
 
+Route::view('/terms', 'legal.terms')->name('terms');
+
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+
 Route::get('/vue-test', function () {
     return view('vue-test');
 });
@@ -35,3 +39,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
