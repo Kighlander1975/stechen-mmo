@@ -1,12 +1,7 @@
 import './bootstrap';
 
-import { createApp } from 'vue';
-import AppStatus from './components/AppStatus.vue';
+import Alpine from 'alpinejs';
 
-const appStatusElement = document.getElementById('app-status');
+window.Alpine = Alpine;
 
-if (appStatusElement) {
-    createApp(AppStatus, {
-        appName: appStatusElement.dataset.appName || 'stechen-mmo',
-    }).mount(appStatusElement);
-}
+Alpine.start();
