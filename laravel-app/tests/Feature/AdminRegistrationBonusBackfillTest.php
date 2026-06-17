@@ -184,4 +184,113 @@ class AdminRegistrationBonusBackfillTest extends TestCase
             ->count());
     }
 
+    public function test_guest_is_redirected_from_bulk_registration_bonus_backfill_action(): void
+    {
+        $response = $this->post(route('admin.rewards.registration-bonus-backfill.store'));
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_authenticated_user_without_admin_permission_cannot_run_bulk_registration_bonus_backfill_action(): void
+    {
+        $actor = User::factory()->create();
+
+        $response = $this->actingAs($actor)->post(route('admin.rewards.registration-bonus-backfill.store'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_can_bulk_grant_registration_bonus_to_verified_open_users_only(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $verifiedOpenUserA = User::factory()->create([
+            'name' => 'Bulk Verified User A',
+            'email' => 'bulk-verified-a@example.test',
+        ]);
+
+        $verifiedOpenUserB = User::factory()->create([
+            'name' => 'Bulk Verified User B',
+            'email' => 'bulk-verified-b@example.test',
+        ]);
+
+        $unverifiedOpenUser = User::factory()->unverified()->create([
+            'name' => 'Bulk Unverified User',
+            'email' => 'bulk-unverified@example.test',
+        ]);
+
+        $alreadyGrantedUser = User::factory()->create([
+            'name' => 'Bulk Already Granted User',
+            'email' => 'bulk-already-granted@example.test',
+        ]);
+
+        app(RewardService::class)->grantRegistrationBonus($alreadyGrantedUser);
+
+        $response = $this->actingAs($admin)->post(route('admin.rewards.registration-bonus-backfill.store'));
+
+        $response
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'))
+            ->assertSessionHas('status', 'Bulk-Backfill abgeschlossen: 3 eingerichtet, 1 bereits vorhanden, 1 wegen offener E-Mail übersprungen, 0 fehlgeschlagen.');
+
+        foreach ([$admin, $verifiedOpenUserA, $verifiedOpenUserB, $alreadyGrantedUser] as $user) {
+            $this->assertDatabaseHas('reward_claims', [
+                'user_id' => $user->id,
+                'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+                'status' => RewardClaim::STATUS_GRANTED,
+            ]);
+        }
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $unverifiedOpenUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+
+        $this->assertSame(1, RewardClaim::query()
+            ->where('user_id', $alreadyGrantedUser->id)
+            ->where('reward_type', RewardClaim::TYPE_REGISTRATION_BONUS)
+            ->count());
+    }
+
+    public function test_bulk_registration_bonus_backfill_action_is_idempotent(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $targetUser = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.rewards.registration-bonus-backfill.store'))
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'));
+
+        $this->actingAs($admin)
+            ->post(route('admin.rewards.registration-bonus-backfill.store'))
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'));
+
+        $this->assertSame(1, RewardClaim::query()
+            ->where('user_id', $targetUser->id)
+            ->where('reward_type', RewardClaim::TYPE_REGISTRATION_BONUS)
+            ->count());
+    }
+
+    public function test_admin_backfill_index_shows_bulk_action_when_verified_open_users_exist(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        User::factory()->create();
+
+        $response = $this->actingAs($admin)->get(route('admin.rewards.registration-bonus-backfill.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Alle bereiten Accounts abfertigen')
+            ->assertSee(route('admin.rewards.registration-bonus-backfill.store', absolute: false));
+    }
+
 }
+
+

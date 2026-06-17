@@ -19,7 +19,7 @@
                     <p class="mt-3 max-w-3xl text-sm leading-6 text-amber-100/80">
                         Diese Ansicht zeigt alle Accounts ohne Registration-Bonus-Claim. Schreibaktionen werden
                         bewusst nur für bestätigte E-Mail-Adressen zugelassen. Verifizierte Accounts können einzeln
-                        abgefertigt werden; Bulk-Aktionen folgen separat.
+                        oder gesammelt abgefertigt werden. Unbestätigte Accounts bleiben offen sichtbar.
                     </p>
                 </div>
 
@@ -50,7 +50,7 @@
         </section>
 
         <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20">
-            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h2 class="text-lg font-bold text-slate-100">
                         Offene Accounts
@@ -61,9 +61,28 @@
                     </p>
                 </div>
 
-                <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-200">
-                    Einzelaktion C2
-                </span>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-200">
+                        Einzel- & Bulk-Aktion C3
+                    </span>
+
+                    @if ($verifiedOpenUsersCount > 0)
+                        <form method="POST" action="{{ route('admin.rewards.registration-bonus-backfill.store') }}">
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="inline-flex items-center justify-center rounded-lg border border-amber-300/40 bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition hover:bg-amber-300"
+                            >
+                                Alle bereiten Accounts abfertigen
+                            </button>
+                        </form>
+                    @else
+                        <span class="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-950/70 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Keine bereiten Accounts
+                        </span>
+                    @endif
+                </div>
             </div>
 
             @if ($openUsers->isEmpty())

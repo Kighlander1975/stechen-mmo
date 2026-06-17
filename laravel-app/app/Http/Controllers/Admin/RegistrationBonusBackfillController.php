@@ -37,6 +37,25 @@ class RegistrationBonusBackfillController extends Controller
         ]);
     }
 
+    public function store(RegistrationBonusBackfillService $backfillService): RedirectResponse
+    {
+        $summary = $backfillService->grantAllVerifiedOpenUsers();
+
+        $message = sprintf(
+            'Bulk-Backfill abgeschlossen: %d eingerichtet, %d bereits vorhanden, %d wegen offener E-Mail übersprungen, %d fehlgeschlagen.',
+            $summary['granted'],
+            $summary['already_granted'],
+            $summary['email_unverified'],
+            $summary['failed'],
+        );
+
+        $flashKey = $summary['failed'] > 0 ? 'warning' : 'status';
+
+        return redirect()
+            ->route('admin.rewards.registration-bonus-backfill.index')
+            ->with($flashKey, $message);
+    }
+
     public function storeForUser(User $user, RegistrationBonusBackfillService $backfillService): RedirectResponse
     {
         $result = $backfillService->grantVerifiedUser($user);

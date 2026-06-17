@@ -71,6 +71,57 @@ class RegistrationBonusBackfillService
 
     /**
      * @return array{
+     *     checked: int,
+     *     eligible: int,
+     *     granted: int,
+     *     already_granted: int,
+     *     email_unverified: int,
+     *     failed: int,
+     *     failures: array<int, string>
+     * }
+     */
+    public function grantAllVerifiedOpenUsers(): array
+    {
+        $summary = [
+            'checked' => 0,
+            'eligible' => 0,
+            'granted' => 0,
+            'already_granted' => 0,
+            'email_unverified' => 0,
+            'failed' => 0,
+            'failures' => [],
+        ];
+
+        User::query()
+            ->orderBy('id')
+            ->chunkById(100, function ($users) use (&$summary): void {
+                foreach ($users as $user) {
+                    $summary['checked']++;
+
+                    $result = $this->grantVerifiedUser($user);
+
+                    match ($result['status']) {
+                        'granted' => $summary['granted']++,
+                        'already_granted' => $summary['already_granted']++,
+                        'email_unverified' => $summary['email_unverified']++,
+                        default => $summary['failed']++,
+                    };
+
+                    if ($result['status'] === 'granted' || $result['status'] === 'already_granted') {
+                        $summary['eligible']++;
+                    }
+
+                    if ($result['status'] === 'failed') {
+                        $summary['failures'][$user->id] = $result['message'];
+                    }
+                }
+            });
+
+        return $summary;
+    }
+
+    /**
+     * @return array{
      *     status: 'already_granted'|'email_unverified'|'granted'|'failed',
      *     message: string
      * }
