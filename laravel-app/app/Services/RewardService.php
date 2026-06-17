@@ -6,6 +6,7 @@ use App\Models\RewardClaim;
 use App\Models\RewardPlan;
 use App\Models\User;
 use App\Models\UserRewardState;
+use App\Models\Wallet;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,13 @@ class RewardService
             return [
                 'eligible' => false,
                 'reason' => 'email_not_verified',
+            ];
+        }
+
+        if (! $this->userHasPlayMoneyWallet($user)) {
+            return [
+                'eligible' => false,
+                'reason' => 'missing_play_money_wallet',
             ];
         }
 
@@ -248,6 +256,16 @@ class RewardService
     public function dailyLoginBonusIdempotencyKey(User $user, string $claimDate): string
     {
         return 'reward:daily-login:user:'.$user->id.':date:'.$claimDate;
+    }
+
+    private function userHasPlayMoneyWallet(User $user): bool
+    {
+        return Wallet::query()
+            ->where('user_id', $user->id)
+            ->where('wallet_type', Wallet::TYPE_USER)
+            ->where('asset_type', Wallet::ASSET_PLAY_MONEY)
+            ->where('currency_code', Wallet::CURRENCY_STECHEN_DOLLAR)
+            ->exists();
     }
 
     private function nextDailyStreakDay(?UserRewardState $state, string $claimDate, RewardPlan $plan): int
