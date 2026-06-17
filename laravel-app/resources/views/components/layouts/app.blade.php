@@ -4,6 +4,8 @@
     'headerTitle' => null,
     'headerStatusLabel' => null,
     'headerStatusTone' => null,
+    'showWalletPanel' => false,
+    'playMoneyBalanceUnits' => 0,
 ])
 
 <!DOCTYPE html>
@@ -24,6 +26,8 @@
             :header-title="$headerTitle ?? null"
             :status-label="$headerStatusLabel ?? null"
             :status-tone="$headerStatusTone ?? null"
+            :show-wallet-panel="$showWalletPanel"
+            :play-money-balance-units="$playMoneyBalanceUnits"
         />
 
         <main class="mx-auto min-h-[calc(100vh-145px)] max-w-6xl px-6 py-10">

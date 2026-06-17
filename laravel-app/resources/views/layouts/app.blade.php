@@ -3,6 +3,8 @@
     'headerTitle' => null,
     'headerStatusLabel' => null,
     'headerStatusTone' => null,
+    'showWalletPanel' => false,
+    'playMoneyBalanceUnits' => 0,
 ])
 
 @php
@@ -10,6 +12,17 @@
     $headerTitle = $headerTitle ?? $attributes->get('header-title');
     $headerStatusLabel = $headerStatusLabel ?? $attributes->get('header-status-label');
     $headerStatusTone = $headerStatusTone ?? $attributes->get('header-status-tone');
+
+    if ($attributes->has('show-wallet-panel')) {
+        $showWalletPanel = $attributes->get('show-wallet-panel');
+    }
+
+    if ($attributes->has('play-money-balance-units')) {
+        $playMoneyBalanceUnits = $attributes->get('play-money-balance-units');
+    }
+
+    $showWalletPanel = filter_var($showWalletPanel, FILTER_VALIDATE_BOOLEAN);
+    $playMoneyBalanceUnits = (int) $playMoneyBalanceUnits;
 @endphp
 
 <!DOCTYPE html>
@@ -32,6 +45,8 @@
             :header-title="$headerTitle ?? null"
             :status-label="$headerStatusLabel ?? null"
             :status-tone="$headerStatusTone ?? null"
+            :show-wallet-panel="$showWalletPanel"
+            :play-money-balance-units="$playMoneyBalanceUnits"
         />
 
         <main class="mx-auto min-h-[calc(100vh-145px)] max-w-6xl px-6 py-10">

@@ -3,6 +3,8 @@
     'headerTitle' => null,
     'statusLabel' => null,
     'statusTone' => null,
+    'showWalletPanel' => false,
+    'playMoneyBalanceUnits' => 0,
 ])
 
 @php
@@ -50,6 +52,10 @@
         ];
     }
 
+    $showWalletPanel = filter_var($showWalletPanel, FILTER_VALIDATE_BOOLEAN);
+    $playMoneyBalanceUnits = (int) $playMoneyBalanceUnits;
+    $playMoneyBalanceDisplay = number_format($playMoneyBalanceUnits, 0, ',', '.').' St$';
+
     $headerProps = [
         'brand' => 'Stechen-MMO',
         'brandUrl' => url('/'),
@@ -58,6 +64,14 @@
         'statusLabel' => $statusLabel ?: ($user ? 'Konto aktiv' : 'Gastmodus'),
         'statusTone' => $statusTone ?: ($user ? 'success' : 'neutral'),
         'navItems' => $navItems,
+        'showWalletPanel' => $showWalletPanel,
+        'wallet' => [
+            'playMoneyBalanceUnits' => $playMoneyBalanceUnits,
+            'playMoneyBalanceDisplay' => $playMoneyBalanceDisplay,
+            'realMoneyEnabled' => false,
+            'realMoneyBalanceDisplay' => 'Deaktiviert',
+            'cashierEnabled' => false,
+        ],
         'logout' => $user ? [
             'label' => 'Logout',
             'href' => route('logout'),
@@ -102,14 +116,38 @@
         </nav>
 
         <section class="border-t border-slate-900 bg-slate-900/60">
-            <div class="mx-auto max-w-6xl px-6 py-6">
-                <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
-                    {{ $headerProps['eyebrow'] }}
-                </p>
+            <div class="mx-auto grid max-w-6xl grid-cols-2 items-center gap-6 px-6 py-6">
+                <div>
+                    <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
+                        {{ $headerProps['eyebrow'] }}
+                    </p>
 
-                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-100">
-                    {{ $headerProps['title'] }}
-                </h1>
+                    <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-100">
+                        {{ $headerProps['title'] }}
+                    </h1>
+                </div>
+
+                @if ($showWalletPanel)
+                    <div class="flex justify-end">
+                        <div class="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 text-right">
+                            <p class="text-xs font-bold uppercase tracking-wide text-emerald-300">
+                                Spielgeld
+                            </p>
+                            <p class="mt-1 text-2xl font-black text-slate-100">
+                                {{ $playMoneyBalanceDisplay }}
+                            </p>
+                            <p class="mt-1 text-xs text-slate-400">
+                                JavaScript aktiviert den Umschalter.
+                            </p>
+                        </div>
+                    </div>
+                @elseif ($headerProps['statusLabel'])
+                    <div class="flex justify-end">
+                        <div class="inline-flex w-fit items-center rounded-full border px-3 py-1 text-sm font-medium">
+                            {{ $headerProps['statusLabel'] }}
+                        </div>
+                    </div>
+                @endif
             </div>
         </section>
     </header>

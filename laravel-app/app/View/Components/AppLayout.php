@@ -12,6 +12,8 @@ class AppLayout extends Component
         public ?string $headerTitle = null,
         public ?string $headerStatusLabel = null,
         public ?string $headerStatusTone = null,
+        public bool $showWalletPanel = false,
+        public int $playMoneyBalanceUnits = 0,
     ) {
     }
 

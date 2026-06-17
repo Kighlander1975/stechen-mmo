@@ -3,6 +3,8 @@
     :header-title="'Willkommen, '.Auth::user()->name"
     header-status-label="Konto aktiv"
     header-status-tone="success"
+    show-wallet-panel="true"
+    play-money-balance-units="{{ $playMoneyBalanceUnits ?? 0 }}"
 >
 
     <div class="space-y-8">

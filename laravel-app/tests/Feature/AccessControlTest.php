@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,6 +27,44 @@ class AccessControlTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Willkommen, '.$user->name, false);
+    }
+
+    public function test_dashboard_shows_zero_play_money_without_creating_wallet(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertSee('&quot;showWalletPanel&quot;:true', false)
+            ->assertSee('&quot;playMoneyBalanceUnits&quot;:0', false)
+            ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;0 St$&quot;', false)
+            ->assertSee('&quot;realMoneyBalanceDisplay&quot;:&quot;Deaktiviert&quot;', false);
+
+        $this->assertDatabaseCount('wallets', 0);
+    }
+
+    public function test_dashboard_shows_existing_play_money_balance(): void
+    {
+        $user = User::factory()->create();
+
+        Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1000,
+            'reserved_units' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertSee('&quot;showWalletPanel&quot;:true', false)
+            ->assertSee('&quot;playMoneyBalanceUnits&quot;:1000', false)
+            ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;1.000 St$&quot;', false);
     }
 
     public function test_guests_are_redirected_from_admin_to_login(): void
