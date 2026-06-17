@@ -212,4 +212,191 @@ class GameRoomLobbyTest extends TestCase
             'reserved_units' => 1_000,
         ]);
     }
+
+    public function test_guest_is_redirected_from_lobby_to_login(): void
+    {
+        $response = $this->get('/lobby');
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_unverified_user_is_redirected_from_lobby_to_verification_notice(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)->get('/lobby');
+
+        $response->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_verified_user_can_view_lobby(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/lobby');
+
+        $response
+            ->assertOk()
+            ->assertSee('Lobby')
+            ->assertSee('Spielräume')
+            ->assertSee('Filter anwenden');
+    }
+
+    public function test_lobby_lists_game_rooms(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-L01',
+            'name' => 'Offener Mikro Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get('/lobby');
+
+        $response
+            ->assertOk()
+            ->assertSee('Offener Mikro Raum')
+            ->assertSee('ROOM-L01')
+            ->assertSee('500 St$');
+    }
+
+    public function test_lobby_can_filter_by_start_mode(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-WF1',
+            'name' => 'Startet wenn voll',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-SC1',
+            'name' => 'Geplanter Abendtisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_SCHEDULED,
+            'scheduled_start_at' => now()->addHour(),
+        ]);
+
+        $response = $this->actingAs($user)->get('/lobby?start_mode='.GameRoom::START_MODE_SCHEDULED);
+
+        $response
+            ->assertOk()
+            ->assertSee('Geplanter Abendtisch')
+            ->assertDontSee('Startet wenn voll');
+    }
+
+    public function test_lobby_can_filter_by_buy_in_category(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-MIC',
+            'name' => 'Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-HIG',
+            'name' => 'High Roller Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get('/lobby?buy_in=high');
+
+        $response
+            ->assertOk()
+            ->assertSee('High Roller Tisch')
+            ->assertDontSee('Mikro Tisch');
+    }
+
+    public function test_lobby_can_filter_by_table_size(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-HU1',
+            'name' => 'Heads Up Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-LRG',
+            'name' => 'Großer Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 9,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get('/lobby?players=large');
+
+        $response
+            ->assertOk()
+            ->assertSee('Großer Tisch')
+            ->assertDontSee('Heads Up Tisch');
+    }
+
+
+    public function test_lobby_header_shows_play_money_wallet_for_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
+        Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1234,
+            'reserved_units' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->get('/lobby');
+
+        $response
+            ->assertOk()
+            ->assertSee('&quot;showWalletPanel&quot;:true', false)
+            ->assertSee('&quot;playMoneyBalanceUnits&quot;:1234', false)
+            ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;1.234 St$&quot;', false);
+    }
+
 }

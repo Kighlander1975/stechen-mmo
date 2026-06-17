@@ -27,6 +27,11 @@
             'href' => route('dashboard'),
         ];
 
+        $navItems[] = [
+            'label' => 'Lobby',
+            'href' => route('lobby'),
+        ];
+
         if ($user->hasPermission('admin.access')) {
             $navItems[] = [
                 'label' => 'Admin',
@@ -52,8 +57,21 @@
         ];
     }
 
-    $showWalletPanel = filter_var($showWalletPanel, FILTER_VALIDATE_BOOLEAN);
+    $showWalletPanel = $user
+        ? true
+        : filter_var($showWalletPanel, FILTER_VALIDATE_BOOLEAN);
+
     $playMoneyBalanceUnits = (int) $playMoneyBalanceUnits;
+
+    if ($user && $playMoneyBalanceUnits === 0) {
+        $playMoneyBalanceUnits = (int) (\App\Models\Wallet::query()
+            ->where('user_id', $user->id)
+            ->where('wallet_type', \App\Models\Wallet::TYPE_USER)
+            ->where('asset_type', \App\Models\Wallet::ASSET_PLAY_MONEY)
+            ->where('currency_code', \App\Models\Wallet::CURRENCY_STECHEN_DOLLAR)
+            ->value('balance_units') ?? 0);
+    }
+
     $playMoneyBalanceDisplay = number_format($playMoneyBalanceUnits, 0, ',', '.').' St$';
 
     $headerProps = [

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
+use App\Models\GameRoom;
 use App\Models\Wallet;
 use App\Services\RewardService;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,76 @@ Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('a
     Route::post('/rewards/registration-bonus-backfill/{user}', [RegistrationBonusBackfillController::class, 'storeForUser'])
         ->name('rewards.registration-bonus-backfill.user');
 });
+
+Route::get('/lobby', function () {
+    $status = request()->query('status');
+    $startMode = request()->query('start_mode');
+    $buyIn = request()->query('buy_in');
+    $players = request()->query('players');
+
+    $roomsQuery = GameRoom::query()
+        ->withCount('activePlayers')
+        ->whereIn('status', [
+            GameRoom::STATUS_OPEN,
+            GameRoom::STATUS_FULL,
+            GameRoom::STATUS_RUNNING,
+            GameRoom::STATUS_FINISHED,
+        ]);
+
+    if (in_array($status, [
+        GameRoom::STATUS_OPEN,
+        GameRoom::STATUS_FULL,
+        GameRoom::STATUS_RUNNING,
+        GameRoom::STATUS_FINISHED,
+    ], true)) {
+        $roomsQuery->where('status', $status);
+    }
+
+    if (in_array($startMode, [
+        GameRoom::START_MODE_WHEN_FULL,
+        GameRoom::START_MODE_SCHEDULED,
+    ], true)) {
+        $roomsQuery->where('start_mode', $startMode);
+    }
+
+    match ($buyIn) {
+        'free' => $roomsQuery->where('buy_in_units', 0),
+        'micro' => $roomsQuery->whereBetween('buy_in_units', [1, 500]),
+        'low' => $roomsQuery->whereBetween('buy_in_units', [501, 2_000]),
+        'medium' => $roomsQuery->whereBetween('buy_in_units', [2_001, 10_000]),
+        'high' => $roomsQuery->where('buy_in_units', '>', 10_000),
+        default => null,
+    };
+
+    match ($players) {
+        'heads_up' => $roomsQuery->where('max_players', 2),
+        'small' => $roomsQuery->whereBetween('max_players', [3, 4]),
+        'medium' => $roomsQuery->whereBetween('max_players', [5, 6]),
+        'large' => $roomsQuery->whereBetween('max_players', [7, GameRoom::MAX_ALLOWED_PLAYERS]),
+        default => null,
+    };
+
+    $gameRooms = $roomsQuery
+        ->orderByRaw("CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 ELSE 3 END", [
+            GameRoom::STATUS_OPEN,
+            GameRoom::STATUS_FULL,
+            GameRoom::STATUS_RUNNING,
+        ])
+        ->orderBy('buy_in_units')
+        ->orderBy('max_players')
+        ->orderBy('name')
+        ->get();
+
+    return view('lobby.index', [
+        'gameRooms' => $gameRooms,
+        'filters' => [
+            'status' => $status,
+            'start_mode' => $startMode,
+            'buy_in' => $buyIn,
+            'players' => $players,
+        ],
+    ]);
+})->middleware(['auth', 'verified'])->name('lobby');
 
 Route::get('/dashboard', function (RewardService $rewardService) {
     $playMoneyWallet = Wallet::query()
