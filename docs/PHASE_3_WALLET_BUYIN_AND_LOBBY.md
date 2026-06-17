@@ -1115,7 +1115,67 @@ Alle Gutschriften laufen über den `WalletService` und erzeugen Ledger-Einträge
 
 Controller dürfen Rewards nicht direkt auf Wallets buchen.
 
-### 32.10 Tests für Rewards
+### 32.10 Backfill für bestehende Accounts und Admin-Auslösung
+
+Bestehende Accounts, die vor Einführung des Reward-Systems erstellt wurden, sollen ihr Startguthaben nachträglich erhalten können.
+
+Diese Nachbuchung darf nicht per direkter Datenbankänderung erfolgen.
+
+Insbesondere verboten:
+
+- direkte Erhöhung von `wallets.balance_units`;
+- manuelle SQL-Updates ohne Ledger-Eintrag;
+- separate Admin-Logik, die Wallets direkt verändert.
+
+Stattdessen muss die Nachbuchung denselben fachlichen Weg verwenden wie neue Registrierungen.
+
+Geplante technische Bausteine:
+
+- `RewardService`
+- optionaler `RegistrationBonusBackfillService`
+- Artisan Command
+- später optionaler Backend-Button für `super_admin`
+
+Der Artisan Command könnte beispielsweise heißen:
+
+- `stechen:grant-registration-bonuses`
+
+Der Command prüft für jeden bestehenden Nutzer:
+
+1. Existiert bereits ein Registrierungsbonus-Claim?
+2. Existiert bereits eine passende idempotente Ledger-Buchung?
+3. Falls ja: Nutzer überspringen.
+4. Falls nein: Registrierungsbonus über `RewardService` und `WalletService` buchen.
+
+Dadurch bleiben alle Nachbuchungen:
+
+- auditierbar;
+- idempotent;
+- über Ledger-Einträge nachvollziehbar;
+- wiederholbar ohne Doppelgutschrift.
+
+Ein späterer Backend-Button darf dieselbe Operation auslösen, aber nur für `super_admin` erreichbar sein.
+
+Der Button muss:
+
+- per `POST` arbeiten;
+- CSRF verwenden;
+- dieselbe Backfill-Service-Logik nutzen wie der Artisan Command;
+- eine Ergebnisübersicht anzeigen;
+- keine eigene Direktbuchungslogik enthalten.
+
+Mögliche Ergebniswerte:
+
+- geprüfte Nutzer;
+- erfolgreich gebuchte Boni;
+- übersprungene Nutzer;
+- Fehler.
+
+Wichtig:
+
+> Es darf nur eine zentrale Backfill-Logik geben. Artisan Command und Admin-Button dürfen keine redundante Buchungslogik enthalten.
+
+### 32.11 Tests für Rewards
 
 Zusätzlich zu den bestehenden Wallet- und Lobby-Tests werden Tests für Rewards benötigt.
 
@@ -1274,5 +1334,3 @@ Nach 30 erfolgreichen Daily Claims in Folge gibt es am 31. Claim-Tag `5.000 St$`
 Collusion- und Abuse-Erkennung wird architektonisch vorbereitet, aber nicht als harte automatische Sperrlogik in die erste Reward-Implementierung eingebaut.
 
 Gleiche IP-Adressen im selben Raum sind ein Risiko-Signal, aber kein alleiniger Beweis für Missbrauch.
-
-
