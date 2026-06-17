@@ -148,6 +148,16 @@ class User extends Authenticatable
         return $this->hasMany(LedgerEntry::class);
     }
 
+    public function rewardClaims(): HasMany
+    {
+        return $this->hasMany(RewardClaim::class);
+    }
+
+    public function rewardStates(): HasMany
+    {
+        return $this->hasMany(UserRewardState::class);
+    }
+
     public function createdGameRooms(): HasMany
     {
         return $this->hasMany(GameRoom::class, 'created_by_user_id');
