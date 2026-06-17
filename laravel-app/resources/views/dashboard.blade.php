@@ -29,6 +29,90 @@
             </div>
         </section>
 
+        @php
+            $dailyClaimStatus = $dailyClaimStatus ?? ['eligible' => false, 'reason' => 'unavailable'];
+            $dailyClaimReason = $dailyClaimStatus['reason'] ?? null;
+            $dailyClaimAmountUnits = (int) ($dailyClaimStatus['amount_units'] ?? 0);
+            $dailyClaimAmountDisplay = number_format($dailyClaimAmountUnits, 0, ',', '.').' St$';
+            $dailyClaimStreakDay = $dailyClaimStatus['streak_day'] ?? null;
+            $dailyClaimIsMilestone = (bool) ($dailyClaimStatus['is_milestone'] ?? false);
+
+            $dailyClaimStatusText = match ($dailyClaimReason) {
+                'already_claimed' => 'Heute bereits abgeholt',
+                'registration_reward_day' => 'Ab dem nächsten Belohnungstag verfügbar',
+                'missing_play_money_wallet' => 'Startguthaben noch nicht eingerichtet',
+                'email_not_verified' => 'E-Mail-Bestätigung erforderlich',
+                'no_active_reward_plan' => 'Aktuell nicht verfügbar',
+                'missing_reward_plan_entry' => 'Bonusplan unvollständig',
+                default => 'Aktuell nicht verfügbar',
+            };
+
+            $dailyClaimDescription = match ($dailyClaimReason) {
+                'already_claimed' => 'Dein täglicher Bonus für den aktuellen Belohnungstag wurde bereits gutgeschrieben.',
+                'registration_reward_day' => 'Der tägliche Login-Bonus startet ab dem nächsten Belohnungstag nach deiner Registrierung.',
+                'missing_play_money_wallet' => 'Für den täglichen Bonus muss zuerst dein Startguthaben eingerichtet sein.',
+                'email_not_verified' => 'Bitte bestätige zuerst deine E-Mail-Adresse, bevor du tägliche Boni abholen kannst.',
+                'no_active_reward_plan' => 'Der tägliche Login-Bonus ist derzeit nicht aktiv.',
+                'missing_reward_plan_entry' => 'Für deinen aktuellen Streak ist momentan kein Bonus hinterlegt.',
+                default => 'Der tägliche Login-Bonus ist momentan nicht verfügbar.',
+            };
+        @endphp
+
+        <!-- Täglicher Login-Bonus -->
+        <section class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-6 shadow-xl shadow-black/20">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-sm font-medium uppercase tracking-wide text-emerald-300">
+                        Täglicher Login-Bonus
+                    </p>
+
+                    @if ($dailyClaimStatus['eligible'])
+                        <h2 class="mt-2 text-2xl font-black text-slate-100">
+                            {{ $dailyClaimAmountDisplay }} abholen
+                        </h2>
+
+                        <p class="mt-2 max-w-2xl text-sm leading-6 text-emerald-100/90">
+                            Dein Bonus für Belohnungstag {{ $dailyClaimStreakDay }} ist verfügbar.
+                            @if ($dailyClaimIsMilestone)
+                                Heute ist ein Meilenstein-Bonus aktiv.
+                            @endif
+                        </p>
+                    @else
+                        <h2 class="mt-2 text-2xl font-black text-slate-100">
+                            {{ $dailyClaimStatusText }}
+                        </h2>
+
+                        <p class="mt-2 max-w-2xl text-sm leading-6 text-emerald-100/90">
+                            {{ $dailyClaimDescription }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-col items-start gap-3 lg:items-end">
+                    @if ($dailyClaimStatus['eligible'])
+                        <form method="POST" action="{{ route('rewards.daily-login.claim') }}">
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="rounded-xl border border-emerald-300/40 bg-emerald-400 px-5 py-3 text-sm font-black uppercase tracking-wide text-slate-950 shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-300"
+                            >
+                                Täglichen Bonus abholen
+                            </button>
+                        </form>
+
+                        <p class="text-xs text-emerald-100/70">
+                            Spielgeld-Bonus, keine Echtgeld-Funktion.
+                        </p>
+                    @else
+                        <span class="inline-flex rounded-full border border-slate-600 bg-slate-950/50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
+                            Nicht verfügbar
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </section>
+
         <!-- Übersicht -->
         <section class="grid gap-6 lg:grid-cols-3">
             <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20">

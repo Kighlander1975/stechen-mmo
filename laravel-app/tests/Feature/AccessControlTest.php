@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\RewardService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -43,6 +45,49 @@ class AccessControlTest extends TestCase
             ->assertSee('&quot;realMoneyBalanceDisplay&quot;:&quot;Deaktiviert&quot;', false);
 
         $this->assertDatabaseCount('wallets', 0);
+    }
+
+    public function test_dashboard_shows_daily_claim_wallet_hint_without_creating_wallet(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response
+            ->assertOk()
+            ->assertSee('Täglicher Login-Bonus')
+            ->assertSee('Startguthaben noch nicht eingerichtet')
+            ->assertSee('Für den täglichen Bonus muss zuerst dein Startguthaben eingerichtet sein.')
+            ->assertDontSee('Täglichen Bonus abholen');
+
+        $this->assertDatabaseCount('wallets', 0);
+    }
+
+    public function test_dashboard_shows_daily_claim_button_when_user_is_eligible(): void
+    {
+        $this->seed(\Database\Seeders\RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        app(RewardService::class)->grantRegistrationBonus($user);
+
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'));
+
+        try {
+            $response = $this->actingAs($user)->get('/dashboard');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+
+        $response
+            ->assertOk()
+            ->assertSee('Täglicher Login-Bonus')
+            ->assertSee('200 St$ abholen')
+            ->assertSee('Dein Bonus für Belohnungstag 1 ist verfügbar.')
+            ->assertSee('Täglichen Bonus abholen')
+            ->assertSee('action="'.route('rewards.daily-login.claim').'"', false);
     }
 
     public function test_dashboard_shows_existing_play_money_balance(): void
@@ -99,3 +144,4 @@ class AccessControlTest extends TestCase
             ->assertSee('admin.access');
     }
 }
+

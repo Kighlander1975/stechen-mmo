@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
 use App\Models\Wallet;
+use App\Services\RewardService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,7 +36,7 @@ Route::get('/admin', function () {
     return view('admin.dashboard');
 })->middleware(['auth', 'permission:admin.access'])->name('admin.dashboard');
 
-Route::get('/dashboard', function () {
+Route::get('/dashboard', function (RewardService $rewardService) {
     $playMoneyWallet = Wallet::query()
         ->where('user_id', request()->user()->id)
         ->where('wallet_type', Wallet::TYPE_USER)
@@ -45,6 +46,7 @@ Route::get('/dashboard', function () {
 
     return view('dashboard', [
         'playMoneyBalanceUnits' => $playMoneyWallet?->balance_units ?? 0,
+        'dailyClaimStatus' => $rewardService->getDailyClaimStatus(request()->user()),
     ]);
 })->middleware(['auth'])->name('dashboard');
 
