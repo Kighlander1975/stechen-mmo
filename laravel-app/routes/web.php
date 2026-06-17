@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
 use App\Models\Wallet;
@@ -32,9 +33,14 @@ Route::get('/api/app-status', function () {
 });
 
 
-Route::get('/admin', function () {
-    return view('admin.dashboard');
-})->middleware(['auth', 'permission:admin.access'])->name('admin.dashboard');
+Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/', function () {
+        return view('admin.dashboard');
+    })->name('dashboard');
+
+    Route::get('/rewards/registration-bonus-backfill', [RegistrationBonusBackfillController::class, 'index'])
+        ->name('rewards.registration-bonus-backfill.index');
+});
 
 Route::get('/dashboard', function (RewardService $rewardService) {
     $playMoneyWallet = Wallet::query()

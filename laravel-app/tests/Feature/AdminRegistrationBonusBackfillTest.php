@@ -1,0 +1,98 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\RewardClaim;
+use App\Models\User;
+use App\Services\RewardService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class AdminRegistrationBonusBackfillTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_guest_is_redirected_from_admin_registration_bonus_backfill_index(): void
+    {
+        $response = $this->get('/admin/rewards/registration-bonus-backfill');
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_authenticated_user_without_admin_permission_cannot_view_registration_bonus_backfill_index(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/admin/rewards/registration-bonus-backfill');
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_can_view_open_registration_bonus_backfill_accounts(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $verifiedOpenUser = User::factory()->create([
+            'name' => 'Verified Open User',
+            'email' => 'verified-open@example.test',
+        ]);
+
+        $unverifiedOpenUser = User::factory()->unverified()->create([
+            'name' => 'Unverified Open User',
+            'email' => 'unverified-open@example.test',
+        ]);
+
+        $alreadyGrantedUser = User::factory()->create([
+            'name' => 'Already Granted User',
+            'email' => 'already-granted@example.test',
+        ]);
+
+        app(RewardService::class)->grantRegistrationBonus($alreadyGrantedUser);
+
+        $response = $this->actingAs($admin)->get('/admin/rewards/registration-bonus-backfill');
+
+        $response
+            ->assertOk()
+            ->assertSee('Startguthaben-Backfill')
+            ->assertSee('Offene Accounts')
+            ->assertSee('Verified Open User')
+            ->assertSee('verified-open@example.test')
+            ->assertSee('Unverified Open User')
+            ->assertSee('unverified-open@example.test')
+            ->assertSee('Bereit')
+            ->assertSee('E-Mail offen')
+            ->assertDontSee('Already Granted User')
+            ->assertDontSee('already-granted@example.test');
+
+        $this->assertDatabaseHas('reward_claims', [
+            'user_id' => $alreadyGrantedUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $verifiedOpenUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $unverifiedOpenUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+    }
+
+    public function test_admin_dashboard_links_to_registration_bonus_backfill_index(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin');
+
+        $response
+            ->assertOk()
+            ->assertSee('Startguthaben-Backfill')
+            ->assertSee(route('admin.rewards.registration-bonus-backfill.index', absolute: false));
+    }
+}
