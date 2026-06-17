@@ -17,6 +17,8 @@ class RewardClaim extends Model
     protected $fillable = [
         'user_id',
         'ledger_entry_id',
+        'reward_plan_id',
+        'reward_plan_entry_id',
         'reward_type',
         'idempotency_key',
         'claim_date',
@@ -46,6 +48,16 @@ class RewardClaim extends Model
     public function ledgerEntry(): BelongsTo
     {
         return $this->belongsTo(LedgerEntry::class);
+    }
+
+    public function rewardPlan(): BelongsTo
+    {
+        return $this->belongsTo(RewardPlan::class);
+    }
+
+    public function rewardPlanEntry(): BelongsTo
+    {
+        return $this->belongsTo(RewardPlanEntry::class);
     }
 
     public function isRegistrationBonus(): bool
