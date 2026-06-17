@@ -840,3 +840,439 @@ Wertung ist ab mindestens 3 menschlichen Spielern möglich.
 KI zählt nicht für menschliche Wertung und wird übersprungen.
 
 Langfristig soll ein Rating-/Elo-System für Rangliste und Raumzuordnung entstehen.
+
+## 32. Registrierungsbonus, Daily Rewards und Spielberechtigung
+
+Zusätzlich zum Wallet-, Buy-in- und Lobby-Fundament gehört zu Phase 3 ein grundlegendes Reward-System für Spielgeld.
+
+Wichtig ist die fachliche Trennung zwischen:
+
+- vorhandenes Guthaben;
+- nutzbares Guthaben;
+- Spielberechtigung.
+
+Ein Nutzer kann also bereits `St$` auf dem Wallet haben, ohne deshalb schon Spielräumen beitreten zu dürfen.
+
+### 32.1 Registrierungsbonus
+
+Nach erfolgreicher Account-Erstellung erhält ein neuer Nutzer automatisch einen einmaligen Registrierungsbonus.
+
+Regel:
+
+- Betrag: `1.000 St$`
+- Zeitpunkt: direkt nach Account-Erstellung
+- Abholung: nicht notwendig
+- Häufigkeit: genau einmal pro Account
+- Ledger-Typ: `registration_grant`
+
+Der Registrierungsbonus ist eine Gutschrift auf das Spielgeld-Wallet.
+
+Wichtig:
+
+> Die Gutschrift bedeutet nicht automatisch, dass der Nutzer bereits spielen darf.
+
+Die Teilnahme an Spielräumen bleibt zusätzlich an die Spielberechtigung des Accounts gekoppelt.
+
+Mögliche Idempotency-Key-Struktur:
+
+- `reward:registration:user:{user_id}`
+
+### 32.2 Spielberechtigung vor Raumbeitritt
+
+Ein Nutzer darf Spielräumen erst beitreten, wenn die fachlichen Voraussetzungen erfüllt sind.
+
+Mindestens vorgesehen:
+
+- E-Mail-Adresse bestätigt;
+- UserDetails vollständig ausgefüllt;
+- Account nicht gesperrt;
+- Account nicht eingeschränkt;
+- Fairplay-/Abuse-Status erlaubt Teilnahme.
+
+Die genaue Definition der UserDetails ist noch offen und wird separat konkretisiert.
+
+Für den späteren `BuyInService` bedeutet das:
+
+- ausreichendes Wallet-Guthaben allein reicht nicht;
+- vor der Buy-in-Reservierung muss geprüft werden, ob der Nutzer spielberechtigt ist.
+
+Diese Prüfung soll nicht direkt im `WalletService` liegen.
+
+Mögliche spätere technische Bausteine:
+
+- `PlayerEligibilityService`
+- Policy/Gate für Raumbeitritt
+- Account-Status-Felder
+- UserDetails-Vollständigkeitsprüfung
+
+### 32.3 Daily Claim Bonus
+
+Neben dem Registrierungsbonus soll es einen täglichen Bonus geben.
+
+Der tägliche Bonus wird nicht automatisch beim Login gutgeschrieben.
+
+Regel:
+
+- Der Nutzer muss eingeloggt sein.
+- Der Nutzer muss aktiv auf eine Abholen-Aktion klicken.
+- Ein Popup/Modal nach dem Login darf auf den Bonus hinweisen.
+- Das Modal darf weggeklickt werden.
+- Der Bonus kann später im Spieler-Dashboard abgeholt werden.
+- Ohne aktive Abholung gibt es keine Gutschrift.
+
+Login ist also nur ein möglicher Hinweiszeitpunkt, aber nicht die eigentliche Auszahlungsaktion.
+
+Möglicher Ledger-Typ:
+
+- `daily_grant`
+
+Mögliche Idempotency-Key-Struktur:
+
+- `reward:daily-login:user:{user_id}:date:{claim_date}`
+
+### 32.4 Daily Claim erst ab dem nächsten Reward-Tag nach Registrierung
+
+Der Tag der Registrierung ist nicht automatisch der erste Daily-Bonus-Tag.
+
+Ein neuer Account soll nicht direkt mit `1.200 St$` starten können.
+
+Regel:
+
+> Am Reward-Tag der Registrierung ist kein Daily Claim möglich.
+
+Der erste Daily Claim ist frühestens am nächsten Reward-Tag nach der Registrierung möglich.
+
+Entscheidend ist dabei nicht ein Mindestabstand von 24 Stunden, sondern der Wechsel des Reward-Tags.
+
+Beispiel 1:
+
+- Registrierung: Montag 10:00
+- Reward-Tag: Montag 04:00 bis Dienstag 03:59:59
+- erster Daily Claim: Dienstag ab 04:00
+
+Beispiel 2:
+
+- Registrierung: Montag 03:00
+- Reward-Tag der Registrierung: Sonntag 04:00 bis Montag 03:59:59
+- erster Daily Claim: Montag ab 04:00
+
+Diese technische Finesse ist ausdrücklich erlaubt.
+
+Beispiel 3:
+
+- Registrierung: Montag 04:01
+- Reward-Tag der Registrierung: Montag 04:00 bis Dienstag 03:59:59
+- erster Daily Claim: Dienstag ab 04:00
+
+Technische Regel:
+
+- `current_claim_date` muss größer sein als `registration_claim_date`.
+
+### 32.5 Reward-Tag und Tageswechsel
+
+Der Daily Claim verwendet keinen gleitenden 24-Stunden-Timer.
+
+Stattdessen gilt ein fester Reward-Tag.
+
+Definition:
+
+- Zeitzone: `Europe/Berlin`
+- Tageswechsel: 04:00 lokale Zeit
+- Reward-Tag: 04:00 bis 03:59:59 am Folgetag
+
+Damit werden Sommerzeit und Winterzeit über die lokale Zeitzone korrekt berücksichtigt.
+
+Beispiele:
+
+- Claim Montag 03:00
+- Claim Montag 04:01
+
+Diese Claims liegen in zwei unterschiedlichen Reward-Tagen und sind daher grundsätzlich beide möglich, sofern alle anderen Bedingungen erfüllt sind.
+
+### 32.6 Daily-Streak und Bonusstaffel
+
+Die Daily-Rewards folgen einer Streak-Logik.
+
+Bonusstaffel:
+
+| Streak-Tag | Bonus |
+|---:|---:|
+| 1 | 200 St$ |
+| 2 | 300 St$ |
+| 3 | 400 St$ |
+| 4 | 500 St$ |
+| 5 | 700 St$ |
+| 6 | 850 St$ |
+| 7 | 1.000 St$ |
+| 8 bis 30 | 1.000 St$ |
+| 31 | 5.000 St$ |
+
+Regel:
+
+- Wird jeden Reward-Tag aktiv geclaimt, steigt der Streak.
+- Wird ein Reward-Tag ausgelassen, fällt der nächste Claim zurück auf Tag 1.
+- Ohne aktive Abholung gibt es keine Gutschrift.
+- Bereits geclaimte Reward-Tage können nicht erneut geclaimt werden.
+
+Beispiel:
+
+- Montag Claim
+- Dienstag kein Claim
+- Mittwoch Claim
+
+Ergebnis:
+
+- Mittwoch ist wieder Streak-Tag 1.
+
+### 32.7 Tag-31-Milestone
+
+Wenn ein Nutzer 30 Daily Claims in Folge durchhält, erhält er am 31. Claim-Tag einen besonderen Bonus.
+
+Regel:
+
+- Tag 31: `5.000 St$`
+- danach wird der Streak zurückgesetzt
+- der nächste erfolgreiche Daily Claim ist wieder Tag 1
+
+Empfohlene technische Interpretation:
+
+- Nach erfolgreichem Tag-31-Claim wird der gespeicherte Streak-Zähler auf `0` gesetzt.
+- Der nächste erlaubte Claim startet wieder mit Streak-Tag `1`.
+
+### 32.8 Daily Claim und Spielberechtigung
+
+Der Registrierungsbonus wird direkt gebucht.
+
+Der Daily Claim soll jedoch stärker geschützt werden, weil er wiederholbar ist.
+
+Empfohlene Regel:
+
+> Daily Claims sind erst erlaubt, wenn der Account spielberechtigt ist.
+
+Das bedeutet mindestens:
+
+- E-Mail bestätigt;
+- UserDetails vollständig;
+- Account nicht eingeschränkt;
+- Account nicht gesperrt.
+
+Dadurch kann ein neuer Nutzer zwar den Registrierungsbonus erhalten, aber keine Daily-Rewards farmen, solange der Account nicht vollständig freigeschaltet ist.
+
+### 32.9 Geplante technische Umsetzung
+
+Das Reward-System soll auditierbar und idempotent umgesetzt werden.
+
+Mögliche Tabellen:
+
+- `reward_claims`
+- `user_reward_states`
+
+Mögliche Models:
+
+- `RewardClaim`
+- `UserRewardState`
+
+Möglicher Service:
+
+- `RewardService`
+
+Mögliche Service-Methoden:
+
+- `grantRegistrationBonus(User $user)`
+- `getDailyClaimStatus(User $user)`
+- `claimDailyLoginBonus(User $user)`
+
+Mögliche Felder für `reward_claims`:
+
+- `user_id`
+- `reward_type`
+- `claim_date`
+- `streak_day`
+- `amount_units`
+- `ledger_entry_id`
+- `claimed_at`
+- `metadata`
+
+Mögliche Felder für `user_reward_states`:
+
+- `user_id`
+- `reward_type`
+- `streak_count`
+- `last_claim_date`
+- `last_claimed_at`
+
+Wichtiger Datenbankschutz:
+
+- Ein Nutzer darf pro Reward-Typ und Claim-Date nur einen Claim erhalten.
+
+Möglicher Unique-Index:
+
+- `user_id`
+- `reward_type`
+- `claim_date`
+
+Alle Gutschriften laufen über den `WalletService` und erzeugen Ledger-Einträge.
+
+Controller dürfen Rewards nicht direkt auf Wallets buchen.
+
+### 32.10 Tests für Rewards
+
+Zusätzlich zu den bestehenden Wallet- und Lobby-Tests werden Tests für Rewards benötigt.
+
+Zu testen:
+
+- Registrierungsbonus wird einmalig gebucht.
+- Registrierungsbonus ist idempotent.
+- Daily Claim ist am Reward-Tag der Registrierung nicht möglich.
+- Daily Claim ist ab dem nächsten Reward-Tag möglich.
+- Daily Claim muss aktiv ausgelöst werden.
+- Mehrfachclaim am selben Reward-Tag ist nicht möglich.
+- Streak steigt bei aufeinanderfolgenden Reward-Tagen.
+- Streak fällt auf Tag 1 zurück, wenn ein Reward-Tag ausgelassen wird.
+- Tag 31 gibt `5.000 St$`.
+- Nach Tag 31 wird der Streak zurückgesetzt.
+- Daily Claim ist für nicht spielberechtigte Accounts nicht möglich.
+- Ledger-Einträge enthalten passende Typen, Beträge, Idempotency Keys und Referenzen.
+
+## 33. Fairplay, Abuse- und Collusion-Erkennung
+
+Mit Wallets, Buy-ins und Rewards entsteht Missbrauchspotenzial.
+
+Phase 3 muss nicht alle Fairplay-Mechanismen vollständig implementieren, soll aber die Architektur darauf vorbereiten.
+
+### 33.1 Grundsatz
+
+Einzelne Signale beweisen keinen Missbrauch.
+
+Beispiel:
+
+- gleiche IP-Adresse;
+- wiederholte gemeinsame Spiele;
+- auffällige Gewinnverteilung.
+
+Solche Signale sollen zunächst als Risiko- oder Review-Hinweise betrachtet werden.
+
+Sperren oder harte Einschränkungen sollten erst bei belastbaren Mustern oder nach manueller Prüfung erfolgen.
+
+### 33.2 Collusion-Risiken
+
+Mögliche Collusion-Muster:
+
+- Ein Spieler gewinnt auffällig oft mit denselben Mitspielern.
+- Bestimmte Mitspieler verlieren auffällig oft an denselben Spieler.
+- Spielergruppen treten wiederholt zusammen Räumen bei.
+- Neue Accounts verlieren wiederholt Guthaben an denselben Zielaccount.
+- Mitspieler treffen auffällig unlogische oder offensichtlich nachteilige Entscheidungen.
+- Spiele enden auffällig schnell oder mit ungewöhnlichen Ergebnisverteilungen.
+- Guthaben wandert wiederholt von mehreren Accounts zu einem Account.
+
+Diese Muster sollen später anhand von Spiel-, Ergebnis-, Raum- und Wallet-Daten ausgewertet werden.
+
+### 33.3 Gleiche IP-Adresse im selben Raum
+
+Mehrere Spieler mit derselben IP-Adresse in einem Raum sind ein relevantes Risiko-Signal.
+
+Gleiche IP ist aber kein Beweis für Missbrauch.
+
+Legitime Gründe können sein:
+
+- Familie;
+- Wohngemeinschaft;
+- Büro;
+- Schule oder Universität;
+- Mobilfunk-Carrier-NAT;
+- Hotel-WLAN;
+- VPN.
+
+Empfohlene Regel:
+
+- gleiche IP im selben Raum erzeugt ein Risk Signal;
+- wiederholte gleiche IP-Konstellationen erhöhen das Risiko;
+- auffällige Spiel- oder Ergebnisdaten erhöhen das Risiko weiter;
+- erst kombinierte Muster lösen Review, Warnung oder Einschränkung aus.
+
+### 33.4 Mögliche gestufte Reaktion
+
+Eine spätere Fairplay-Logik kann gestuft reagieren.
+
+Mögliche Stufen:
+
+1. Risk Event speichern.
+2. Risiko-Score erhöhen.
+3. Interne Review-Markierung setzen.
+4. Admin-/Moderationsprüfung anstoßen.
+5. Warnung aussprechen.
+6. Temporäre Einschränkung setzen.
+7. Account bei starkem oder bestätigtem Missbrauch sperren.
+
+Dauerhafte Sperren sollten nicht allein auf Basis einer IP-Übereinstimmung erfolgen.
+
+### 33.5 Daten, die später für Fairplay relevant sein können
+
+Mögliche Datenquellen:
+
+- Raumteilnahmen;
+- Spielteilnahmen;
+- Spielresultate;
+- Gewinner und Platzierungen;
+- Wallet-Bewegungen;
+- Buy-in- und Preisgeldflüsse;
+- IP-Adresse bei Login;
+- IP-Adresse bei Raumbeitritt;
+- User-Agent;
+- Session-Daten;
+- spätere Spielzug-Historie;
+- auffällige Zeitmuster;
+- wiederholte gleiche Spielergruppen.
+
+Sobald echte Spielzüge existieren, können zusätzlich geprüft werden:
+
+- auffällig schlechte Entscheidungen;
+- wiederholtes absichtliches Verlieren;
+- ungewöhnliche Pass-/Ansage-/Spielmuster;
+- unplausible Kooperation zwischen Accounts.
+
+### 33.6 Datenschutz und Zugriff
+
+Fairplay- und Abuse-Daten können sensible Informationen enthalten.
+
+Daher gelten folgende Grundsätze:
+
+- nur notwendige Daten speichern;
+- Zweck klar dokumentieren;
+- Zugriff auf Admin-/Moderationsrollen beschränken;
+- Speicherfristen später definieren;
+- keine unnötig invasive Fingerprinting-Logik im MVP;
+- IP- und Gerätedaten nicht als alleinige Sperrgrundlage verwenden.
+
+## 34. Ergänzter Konsens zu Rewards und Fairplay
+
+Der Registrierungsbonus beträgt `1.000 St$` und wird direkt nach Account-Erstellung automatisch gebucht.
+
+Der Registrierungsbonus macht den Account nicht automatisch spielberechtigt.
+
+Spielräume dürfen erst betreten werden, wenn mindestens E-Mail-Bestätigung und vollständige UserDetails vorliegen und der Account nicht eingeschränkt ist.
+
+Daily Rewards werden nicht automatisch beim Login gebucht.
+
+Daily Rewards müssen aktiv abgeholt werden.
+
+Ein Popup/Modal nach dem Login darf auf den Bonus hinweisen, kann aber weggeklickt werden. Der Claim kann später im Spieler-Dashboard nachgeholt werden.
+
+Der Reward-Tag verwendet `Europe/Berlin` mit Tageswechsel um 04:00 lokale Zeit.
+
+Der Daily Claim ist am Reward-Tag der Registrierung nicht erlaubt.
+
+Der erste Daily Claim ist frühestens ab dem nächsten Reward-Tag nach der Registrierung möglich.
+
+Es gibt keinen Mindestabstand von 24 Stunden zwischen zwei Claims, wenn durch den 04:00-Cutoff bereits ein neuer Reward-Tag begonnen hat.
+
+Wird ein Reward-Tag ausgelassen, fällt der nächste Daily Claim auf Streak-Tag 1 zurück.
+
+Nach 30 erfolgreichen Daily Claims in Folge gibt es am 31. Claim-Tag `5.000 St$`. Danach wird der Streak zurückgesetzt.
+
+Collusion- und Abuse-Erkennung wird architektonisch vorbereitet, aber nicht als harte automatische Sperrlogik in die erste Reward-Implementierung eingebaut.
+
+Gleiche IP-Adressen im selben Raum sind ein Risiko-Signal, aber kein alleiniger Beweis für Missbrauch.
+
+
