@@ -148,6 +148,16 @@ class User extends Authenticatable
         return $this->hasMany(LedgerEntry::class);
     }
 
+    public function createdGameRooms(): HasMany
+    {
+        return $this->hasMany(GameRoom::class, 'created_by_user_id');
+    }
+
+    public function gameRoomPlayers(): HasMany
+    {
+        return $this->hasMany(GameRoomPlayer::class);
+    }
+
     public function isPlayer(): bool
     {
         return $this->account_type === self::ACCOUNT_TYPE_PLAYER;
