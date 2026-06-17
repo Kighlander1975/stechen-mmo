@@ -1140,7 +1140,12 @@ Umgesetzte technische Bausteine:
 
 Der Artisan Command heißt:
 
-- `stechen:grant-registration-bonuses`
+- `rewards:backfill-registration-bonus`
+
+Verfügbare Optionen:
+
+- `--dry-run`: zeigt berechtigte Nutzer an, ohne Rewards zu schreiben;
+- `--user-id=`: beschränkt den Backfill auf einen einzelnen Nutzer.
 
 Die zentrale Backfill-Logik prüft für jeden bestehenden Nutzer:
 
@@ -1382,5 +1387,6 @@ Nach 30 erfolgreichen Daily Claims in Folge gibt es am 31. Claim-Tag `5.000 St$`
 Collusion- und Abuse-Erkennung wird architektonisch vorbereitet, aber nicht als harte automatische Sperrlogik in die erste Reward-Implementierung eingebaut.
 
 Gleiche IP-Adressen im selben Raum sind ein Risiko-Signal, aber kein alleiniger Beweis für Missbrauch.
+
 
 
