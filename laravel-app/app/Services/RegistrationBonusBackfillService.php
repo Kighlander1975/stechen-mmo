@@ -69,7 +69,44 @@ class RegistrationBonusBackfillService
         return $summary;
     }
 
-    private function hasRegistrationBonus(User $user): bool
+    /**
+     * @return array{
+     *     status: 'already_granted'|'email_unverified'|'granted'|'failed',
+     *     message: string
+     * }
+     */
+    public function grantVerifiedUser(User $user): array
+    {
+        if ($this->hasRegistrationBonus($user)) {
+            return [
+                'status' => 'already_granted',
+                'message' => 'Das Startguthaben war für diesen Account bereits eingerichtet.',
+            ];
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            return [
+                'status' => 'email_unverified',
+                'message' => 'Das Startguthaben kann erst nach bestätigter E-Mail-Adresse eingerichtet werden.',
+            ];
+        }
+
+        try {
+            $this->rewardService->grantRegistrationBonus($user);
+
+            return [
+                'status' => 'granted',
+                'message' => 'Das Startguthaben wurde erfolgreich eingerichtet.',
+            ];
+        } catch (Throwable $throwable) {
+            return [
+                'status' => 'failed',
+                'message' => 'Das Startguthaben konnte nicht eingerichtet werden: '.$throwable->getMessage(),
+            ];
+        }
+    }
+
+    public function hasRegistrationBonus(User $user): bool
     {
         return RewardClaim::query()
             ->where('idempotency_key', $this->rewardService->registrationBonusIdempotencyKey($user))

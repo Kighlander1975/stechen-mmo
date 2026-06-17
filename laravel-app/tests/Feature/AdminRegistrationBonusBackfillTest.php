@@ -95,4 +95,93 @@ class AdminRegistrationBonusBackfillTest extends TestCase
             ->assertSee('Startguthaben-Backfill')
             ->assertSee(route('admin.rewards.registration-bonus-backfill.index', absolute: false));
     }
+    public function test_guest_is_redirected_from_single_registration_bonus_backfill_action(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->post(route('admin.rewards.registration-bonus-backfill.user', $user));
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_authenticated_user_without_admin_permission_cannot_run_single_registration_bonus_backfill_action(): void
+    {
+        $actor = User::factory()->create();
+        $targetUser = User::factory()->create();
+
+        $response = $this->actingAs($actor)->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser));
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_can_grant_registration_bonus_to_single_verified_open_user(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $targetUser = User::factory()->create([
+            'name' => 'Single Verified User',
+            'email' => 'single-verified@example.test',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser));
+
+        $response
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'))
+            ->assertSessionHas('status', 'Das Startguthaben wurde erfolgreich eingerichtet.');
+
+        $this->assertDatabaseHas('reward_claims', [
+            'user_id' => $targetUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+            'status' => RewardClaim::STATUS_GRANTED,
+        ]);
+    }
+
+    public function test_admin_cannot_grant_registration_bonus_to_single_unverified_user(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $targetUser = User::factory()->unverified()->create([
+            'name' => 'Single Unverified User',
+            'email' => 'single-unverified@example.test',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser));
+
+        $response
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'))
+            ->assertSessionHas('warning', 'Das Startguthaben kann erst nach bestätigter E-Mail-Adresse eingerichtet werden.');
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $targetUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+    }
+
+    public function test_single_registration_bonus_backfill_action_is_idempotent(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $targetUser = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser))
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'));
+
+        $this->actingAs($admin)
+            ->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser))
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'))
+            ->assertSessionHas('status', 'Das Startguthaben war für diesen Account bereits eingerichtet.');
+
+        $this->assertSame(1, RewardClaim::query()
+            ->where('user_id', $targetUser->id)
+            ->where('reward_type', RewardClaim::TYPE_REGISTRATION_BONUS)
+            ->count());
+    }
+
 }

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\RewardClaim;
 use App\Models\User;
+use App\Services\RegistrationBonusBackfillService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 
 class RegistrationBonusBackfillController extends Controller
 {
@@ -33,5 +35,21 @@ class RegistrationBonusBackfillController extends Controller
             'verifiedOpenUsersCount' => $verifiedOpenUsers->count(),
             'unverifiedOpenUsersCount' => $unverifiedOpenUsers->count(),
         ]);
+    }
+
+    public function storeForUser(User $user, RegistrationBonusBackfillService $backfillService): RedirectResponse
+    {
+        $result = $backfillService->grantVerifiedUser($user);
+
+        $flashKey = match ($result['status']) {
+            'granted' => 'status',
+            'already_granted' => 'status',
+            'email_unverified' => 'warning',
+            default => 'error',
+        };
+
+        return redirect()
+            ->route('admin.rewards.registration-bonus-backfill.index')
+            ->with($flashKey, $result['message']);
     }
 }

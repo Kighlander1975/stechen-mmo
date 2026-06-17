@@ -18,8 +18,8 @@
 
                     <p class="mt-3 max-w-3xl text-sm leading-6 text-amber-100/80">
                         Diese Ansicht zeigt alle Accounts ohne Registration-Bonus-Claim. Schreibaktionen werden
-                        bewusst nur für bestätigte E-Mail-Adressen zugelassen. In diesem Schritt ist die Ansicht
-                        noch read-only; Einzel- und Bulk-Aktionen folgen separat.
+                        bewusst nur für bestätigte E-Mail-Adressen zugelassen. Verifizierte Accounts können einzeln
+                        abgefertigt werden; Bulk-Aktionen folgen separat.
                     </p>
                 </div>
 
@@ -61,8 +61,8 @@
                     </p>
                 </div>
 
-                <span class="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
-                    Read-only C1
+                <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-200">
+                    Einzelaktion C2
                 </span>
             </div>
 
@@ -116,8 +116,23 @@
                                             @endif
                                         </td>
 
-                                        <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
-                                            Aktionen folgen in C2/C3
+                                        <td class="whitespace-nowrap px-4 py-3 text-sm">
+                                            @if ($user->hasVerifiedEmail())
+                                                <form method="POST" action="{{ route('admin.rewards.registration-bonus-backfill.user', $user) }}">
+                                                    @csrf
+
+                                                    <button
+                                                        type="submit"
+                                                        class="rounded-lg border border-emerald-300/40 bg-emerald-400 px-3 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition hover:bg-emerald-300"
+                                                    >
+                                                        Startguthaben einrichten
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="text-sm text-slate-500">
+                                                    Nicht möglich – E-Mail offen
+                                                </span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

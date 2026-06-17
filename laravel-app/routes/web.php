@@ -40,6 +40,9 @@ Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('a
 
     Route::get('/rewards/registration-bonus-backfill', [RegistrationBonusBackfillController::class, 'index'])
         ->name('rewards.registration-bonus-backfill.index');
+
+    Route::post('/rewards/registration-bonus-backfill/{user}', [RegistrationBonusBackfillController::class, 'storeForUser'])
+        ->name('rewards.registration-bonus-backfill.user');
 });
 
 Route::get('/dashboard', function (RewardService $rewardService) {
