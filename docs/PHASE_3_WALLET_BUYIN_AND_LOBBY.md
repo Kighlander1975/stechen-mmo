@@ -1129,18 +1129,20 @@ Insbesondere verboten:
 
 Stattdessen muss die Nachbuchung denselben fachlichen Weg verwenden wie neue Registrierungen.
 
-Geplante technische Bausteine:
+Umgesetzte technische Bausteine:
 
 - `RewardService`
-- optionaler `RegistrationBonusBackfillService`
+- `RegistrationBonusBackfillService`
 - Artisan Command
-- später optionaler Backend-Button für `super_admin`
+- Admin-Read-only-Liste offener Accounts
+- Admin-Einzel-Backfill für verifizierte Accounts
+- Admin-Bulk-Backfill für alle verifizierten offenen Accounts
 
-Der Artisan Command könnte beispielsweise heißen:
+Der Artisan Command heißt:
 
 - `stechen:grant-registration-bonuses`
 
-Der Command prüft für jeden bestehenden Nutzer:
+Die zentrale Backfill-Logik prüft für jeden bestehenden Nutzer:
 
 1. Existiert bereits ein Registrierungsbonus-Claim?
 2. Existiert bereits eine passende idempotente Ledger-Buchung?
@@ -1154,22 +1156,33 @@ Dadurch bleiben alle Nachbuchungen:
 - über Ledger-Einträge nachvollziehbar;
 - wiederholbar ohne Doppelgutschrift.
 
-Ein späterer Backend-Button darf dieselbe Operation auslösen, aber nur für `super_admin` erreichbar sein.
+Admin-Backfill-Regeln:
 
-Der Button muss:
+- Admin-Aktionen arbeiten per `POST`.
+- CSRF ist erforderlich.
+- Die Admin-Oberfläche nutzt dieselbe Backfill-Service-Logik wie der Artisan Command.
+- Die Admin-Liste zeigt Accounts ohne Registrierungsbonus-Claim.
+- Verifizierte offene Accounts können einzeln abgefertigt werden.
+- Unverifizierte offene Accounts werden nicht gebucht und bleiben sichtbar.
+- Der Bulk-Backfill verarbeitet alle verifizierten offenen Accounts.
+- Der Bulk-Backfill verarbeitet auch den handelnden Admin, wenn dieser selbst ein verifizierter offener Account ohne Registrierungsbonus ist.
+- Bereits versorgte Accounts werden durch Idempotenz nicht doppelt gebucht.
+- Controller dürfen keine eigene Direktbuchungslogik enthalten.
 
-- per `POST` arbeiten;
-- CSRF verwenden;
-- dieselbe Backfill-Service-Logik nutzen wie der Artisan Command;
-- eine Ergebnisübersicht anzeigen;
-- keine eigene Direktbuchungslogik enthalten.
+Aktueller Umsetzungsstand:
 
-Mögliche Ergebniswerte:
+- C1 Read-only-Liste: umgesetzt.
+- C2 Einzel-Backfill: umgesetzt.
+- C3 Bulk-Backfill: umgesetzt.
 
-- geprüfte Nutzer;
-- erfolgreich gebuchte Boni;
-- übersprungene Nutzer;
-- Fehler.
+Tests decken insbesondere ab:
+
+- Zugriffsschutz für Gäste und Nicht-Admins;
+- Anzeige offener Accounts;
+- Einzel-Backfill für verifizierte Accounts;
+- Blockade unverifizierter Accounts;
+- Bulk-Backfill für alle verifizierten offenen Accounts;
+- Idempotenz und Schutz vor Doppelgutschriften.
 
 Wichtig:
 
@@ -1193,6 +1206,41 @@ Zu testen:
 - Nach Tag 31 wird der Streak zurückgesetzt.
 - Daily Claim ist für nicht spielberechtigte Accounts nicht möglich.
 - Ledger-Einträge enthalten passende Typen, Beträge, Idempotency Keys und Referenzen.
+
+### 32.12 Geplanter Daily-Bonus-Prompt
+
+Status: geplant, noch nicht umgesetzt.
+
+Der Daily-Bonus-Prompt ist ein separates UX- und Reward-State-Thema. Er darf den Nutzer auf einen verfügbaren Daily Claim hinweisen, aber niemals automatisch eine Gutschrift auslösen.
+
+Grundregel:
+
+- Der Nutzer muss authentifiziert sein.
+- Der aktuelle Daily-Claim-Zyklus wird geprüft.
+- Wenn ein neuer Claim-Zyklus verfügbar ist und der Prompt in diesem Zyklus noch nicht angezeigt wurde, darf ein Modal einmalig angezeigt werden.
+- Der Einstieg darf über eine beliebige Seite erfolgen.
+- Das Modal darf weggeklickt werden.
+- Wegklicken bucht keinen Bonus.
+- Der Bonus bleibt weiterhin im Spieler-Dashboard aktiv abholbar.
+- Ohne aktive Abholen-Aktion gibt es keine Gutschrift.
+
+Dafür wird ein persistenter Status benötigt, der pro Nutzer und Claim-Zyklus festhält, ob der Prompt bereits angezeigt wurde.
+
+Mögliche technische Varianten:
+
+- Erweiterung von `user_reward_states`;
+- separate Prompt-/Reward-State-Struktur;
+- Speicherung eines `prompt_shown_cycle_key`;
+- optional zusätzlich `prompt_dismissed_at`.
+
+Wichtig:
+
+> Der Prompt ist nur ein Hinweis. Die fachliche Claim-Entscheidung bleibt im `RewardService`.
+
+Offene Entscheidung:
+
+- Wird der Daily-Bonus-Prompt noch in Phase 3 umgesetzt?
+- Oder wird er als späteres UX-Paket nach dem Reward-/Wallet-Fundament eingeplant?
 
 ## 33. Fairplay, Abuse- und Collusion-Erkennung
 
@@ -1334,3 +1382,5 @@ Nach 30 erfolgreichen Daily Claims in Folge gibt es am 31. Claim-Tag `5.000 St$`
 Collusion- und Abuse-Erkennung wird architektonisch vorbereitet, aber nicht als harte automatische Sperrlogik in die erste Reward-Implementierung eingebaut.
 
 Gleiche IP-Adressen im selben Raum sind ein Risiko-Signal, aber kein alleiniger Beweis für Missbrauch.
+
+
