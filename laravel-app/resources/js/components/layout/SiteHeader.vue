@@ -80,10 +80,18 @@ const walletBalanceLabel = computed(() => {
 
 const walletHint = computed(() => {
     if (walletMode.value === 'play') {
-        return 'Klick: zu Echtgeld wechseln';
+        return 'Klick: Echtgeld-Status anzeigen';
     }
 
-    return 'Klick: zu Spielgeld wechseln';
+    return 'Klick: Spielgeld-Stand anzeigen';
+});
+
+const walletClaimStatus = computed(() => {
+    if (walletMode.value === 'play') {
+        return 'Login-Bonus: vorbereitet';
+    }
+
+    return 'Echtgeld-Wallet: nicht aktiv';
 });
 
 function statusClass(tone) {
@@ -146,7 +154,7 @@ function toggleWalletMode() {
         </nav>
 
         <section class="border-t border-slate-900 bg-slate-900/60">
-            <div class="mx-auto grid max-w-6xl grid-cols-2 items-center gap-6 px-6 py-6">
+            <div class="mx-auto grid max-w-6xl grid-cols-2 items-center gap-5 px-6 py-5">
                 <div>
                     <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
                         {{ eyebrow }}
@@ -157,51 +165,61 @@ function toggleWalletMode() {
                     </h1>
                 </div>
 
-                <div class="flex justify-end">
+                <div class="flex w-full justify-end gap-3">
+                    <div
+                        v-if="showWalletPanel"
+                        class="min-h-[4.75rem] min-w-0 flex-1 basis-0 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 shadow-lg shadow-black/10"
+                        style="font-size: 80%;"
+                    >
+                        <div class="flex h-full items-center justify-center text-center">
+                            <p class="text-[0.875em] font-medium italic text-slate-500">
+                                Info-Platzhalter
+                            </p>
+                        </div>
+                    </div>
                     <button
                         v-if="showWalletPanel"
                         type="button"
-                        class="group w-full max-w-sm rounded-2xl border px-5 py-4 text-left shadow-xl shadow-black/20 transition focus:outline-none focus:ring-2 focus:ring-amber-300/70"
+                        class="group min-w-0 flex-1 basis-0 rounded-2xl border px-4 py-3 text-left shadow-lg shadow-black/15 transition focus:outline-none focus:ring-2 focus:ring-amber-300/70"
+                        style="font-size: 80%;"
                         :class="walletPanelClasses"
                         :aria-label="`${walletModeLabel}-Anzeige. ${walletHint}`"
                         @click="toggleWalletMode"
                     >
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
+                        <div class="flex h-full min-w-0 flex-col justify-between gap-2">
+                            <div class="min-w-0">
                                 <p
-                                    class="text-xs font-black uppercase tracking-wide"
+                                    class="truncate text-[0.875em] font-black uppercase tracking-wide"
                                     :class="walletMode === 'play' ? 'text-emerald-300' : 'text-red-300'"
                                 >
                                     {{ walletModeLabel }}
                                 </p>
 
-                                <p class="mt-1 text-2xl font-black tracking-tight text-slate-100">
+                                <p class="mt-0.5 truncate text-[1.125em] font-semibold tracking-tight text-slate-100">
                                     {{ walletBalanceLabel }}
                                 </p>
 
-                                <p class="mt-2 text-xs font-medium text-slate-400 transition group-hover:text-slate-300">
+                                <p class="mt-1 truncate text-[0.8125em] font-medium text-slate-500 transition group-hover:text-slate-300">
                                     {{ walletHint }}
                                 </p>
                             </div>
 
-                            <div
-                                v-if="walletMode === 'real'"
-                                class="flex flex-col items-end gap-2"
-                            >
-                                <span class="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-1 text-xs font-bold uppercase tracking-wide text-red-300">
-                                    inaktiv
+                            <div class="flex min-w-0 items-center justify-start gap-2">
+                                <span
+                                    class="max-w-full truncate rounded-full border px-2 py-0.5 text-[0.75em] font-semibold uppercase tracking-wide"
+                                    :class="walletMode === 'play'
+                                        ? 'border-amber-300/20 bg-amber-300/10 text-amber-200/80'
+                                        : 'border-slate-600/60 bg-slate-950/60 text-slate-500'"
+                                >
+                                    {{ walletClaimStatus }}
                                 </span>
 
-                                <span class="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-bold text-slate-500">
-                                    Kasse
+                                <span
+                                    v-if="walletMode === 'real'"
+                                    class="truncate text-[0.75em] font-semibold uppercase tracking-wide text-slate-600"
+                                >
+                                    Kasse später
                                 </span>
-                            </div>
-
-                            <div
-                                v-else
-                                class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-xs font-bold uppercase tracking-wide text-emerald-300"
-                            >
-                                aktiv
                             </div>
                         </div>
                     </button>
@@ -218,3 +236,4 @@ function toggleWalletMode() {
         </section>
     </header>
 </template>
+
