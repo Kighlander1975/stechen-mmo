@@ -33,11 +33,13 @@ class WalletService
         string $idempotencyKey,
         ?string $description = null,
         array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
     ): LedgerEntry {
         $this->ensurePositiveAmount($amountUnits);
         $this->ensureIdempotencyKey($idempotencyKey);
 
-        return DB::transaction(function () use ($user, $amountUnits, $idempotencyKey, $description, $metadata): LedgerEntry {
+        return DB::transaction(function () use ($user, $amountUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId): LedgerEntry {
             $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
 
             if ($existingEntry !== null) {
@@ -61,6 +63,8 @@ class WalletService
                 'reserved_after_units' => $wallet->reserved_units,
                 'entry_type' => LedgerEntry::TYPE_GRANT,
                 'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
                 'description' => $description,
                 'metadata' => $metadata,
             ]);
@@ -73,11 +77,13 @@ class WalletService
         string $idempotencyKey,
         ?string $description = null,
         array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
     ): LedgerEntry {
         $this->ensurePositiveAmount($amountUnits);
         $this->ensureIdempotencyKey($idempotencyKey);
 
-        return DB::transaction(function () use ($wallet, $amountUnits, $idempotencyKey, $description, $metadata): LedgerEntry {
+        return DB::transaction(function () use ($wallet, $amountUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId): LedgerEntry {
             $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
 
             if ($existingEntry !== null) {
@@ -104,6 +110,8 @@ class WalletService
                 'reserved_after_units' => $lockedWallet->reserved_units,
                 'entry_type' => LedgerEntry::TYPE_RESERVE,
                 'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
                 'description' => $description,
                 'metadata' => $metadata,
             ]);
@@ -116,11 +124,13 @@ class WalletService
         string $idempotencyKey,
         ?string $description = null,
         array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
     ): LedgerEntry {
         $this->ensurePositiveAmount($amountUnits);
         $this->ensureIdempotencyKey($idempotencyKey);
 
-        return DB::transaction(function () use ($wallet, $amountUnits, $idempotencyKey, $description, $metadata): LedgerEntry {
+        return DB::transaction(function () use ($wallet, $amountUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId): LedgerEntry {
             $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
 
             if ($existingEntry !== null) {
@@ -147,6 +157,8 @@ class WalletService
                 'reserved_after_units' => $lockedWallet->reserved_units,
                 'entry_type' => LedgerEntry::TYPE_RELEASE,
                 'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
                 'description' => $description,
                 'metadata' => $metadata,
             ]);

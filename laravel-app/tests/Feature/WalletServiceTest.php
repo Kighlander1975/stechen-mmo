@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\GameRoom;
 use App\Models\LedgerEntry;
 use App\Models\User;
 use App\Models\Wallet;
@@ -68,6 +69,26 @@ class WalletServiceTest extends TestCase
         $this->assertSame('test', $entry->metadata['source']);
     }
 
+    public function test_grant_play_money_can_store_ledger_reference(): void
+    {
+        $user = User::factory()->create();
+
+        $entry = app(WalletService::class)->grantPlayMoney(
+            user: $user,
+            amountUnits: 500,
+            idempotencyKey: 'grant-reference-test-'.$user->id,
+            description: 'Referenced grant',
+            metadata: [
+                'source' => 'reference-test',
+            ],
+            referenceType: GameRoom::class,
+            referenceId: 123,
+        );
+
+        $this->assertSame(GameRoom::class, $entry->reference_type);
+        $this->assertSame(123, $entry->reference_id);
+    }
+
     public function test_grant_play_money_is_idempotent(): void
     {
         $user = User::factory()->create();
@@ -108,6 +129,30 @@ class WalletServiceTest extends TestCase
         $this->assertSame(300, $reserveEntry->amount_units);
         $this->assertSame(1_000, $reserveEntry->balance_after_units);
         $this->assertSame(300, $reserveEntry->reserved_after_units);
+    }
+
+    public function test_reserve_units_can_store_ledger_reference(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'reserve-reference-grant-'.$user->id);
+
+        $reserveEntry = $service->reserveUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: 300,
+            idempotencyKey: 'reserve-reference-test-'.$user->id,
+            description: 'Reserve with reference',
+            metadata: [
+                'source' => 'buy-in-test',
+            ],
+            referenceType: GameRoom::class,
+            referenceId: 456,
+        );
+
+        $this->assertSame(GameRoom::class, $reserveEntry->reference_type);
+        $this->assertSame(456, $reserveEntry->reference_id);
+        $this->assertSame('buy-in-test', $reserveEntry->metadata['source']);
     }
 
     public function test_reserve_units_is_idempotent(): void
@@ -166,6 +211,28 @@ class WalletServiceTest extends TestCase
         $this->assertSame(150, $releaseEntry->amount_units);
         $this->assertSame(1_000, $releaseEntry->balance_after_units);
         $this->assertSame(250, $releaseEntry->reserved_after_units);
+    }
+
+    public function test_release_reserved_units_can_store_ledger_reference(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'release-reference-grant-'.$user->id);
+
+        $service->reserveUnits($grantEntry->wallet, 400, 'release-reference-reserve-'.$user->id);
+
+        $releaseEntry = $service->releaseReservedUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: 150,
+            idempotencyKey: 'release-reference-test-'.$user->id,
+            description: 'Release with reference',
+            referenceType: GameRoom::class,
+            referenceId: 789,
+        );
+
+        $this->assertSame(GameRoom::class, $releaseEntry->reference_type);
+        $this->assertSame(789, $releaseEntry->reference_id);
     }
 
     public function test_it_rejects_release_when_reserved_units_are_insufficient(): void
