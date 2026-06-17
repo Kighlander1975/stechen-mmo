@@ -4,10 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\LedgerEntry;
 use App\Models\RewardClaim;
+use App\Models\RewardPlan;
 use App\Models\User;
+use App\Models\UserRewardState;
 use App\Models\Wallet;
 use App\Services\RewardService;
+use Carbon\CarbonImmutable;
+use Database\Seeders\RewardPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
 use Tests\TestCase;
 
 class RewardServiceTest extends TestCase
@@ -100,4 +105,203 @@ class RewardServiceTest extends TestCase
         $this->assertSame(0, $wallet->reserved_units);
         $this->assertSame(1, Wallet::count());
     }
+
+
+    public function test_daily_claim_status_rejects_unverified_user(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->unverified()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $status = app(RewardService::class)->getDailyClaimStatus(
+            $user,
+            CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'),
+        );
+
+        $this->assertFalse($status['eligible']);
+        $this->assertSame('email_not_verified', $status['reason']);
+    }
+
+    public function test_daily_claim_is_blocked_on_registration_reward_day(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $status = app(RewardService::class)->getDailyClaimStatus(
+            $user,
+            CarbonImmutable::parse('2026-06-17 12:00:00', 'Europe/Berlin'),
+        );
+
+        $this->assertFalse($status['eligible']);
+        $this->assertSame('registration_reward_day', $status['reason']);
+        $this->assertSame('2026-06-17', $status['claim_date']);
+        $this->assertSame('2026-06-17', $status['registration_reward_date']);
+    }
+
+    public function test_daily_claim_can_be_granted_from_next_reward_day(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $claim = app(RewardService::class)->claimDailyLoginBonus(
+            $user,
+            CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'),
+        );
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+        $state = UserRewardState::where('user_id', $user->id)
+            ->where('reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)
+            ->firstOrFail();
+
+        $this->assertSame(RewardClaim::TYPE_DAILY_LOGIN_BONUS, $claim->reward_type);
+        $this->assertSame('2026-06-18', $claim->claim_date->toDateString());
+        $this->assertSame(1, $claim->streak_day);
+        $this->assertSame(200, $claim->amount_units);
+        $this->assertSame(200, $wallet->balance_units);
+        $this->assertSame(1, $state->streak_count);
+        $this->assertSame('2026-06-18', $state->last_claim_date->toDateString());
+        $this->assertSame(RewardPlan::CODE_DEFAULT_DAILY_LOGIN, $claim->rewardPlan->code);
+        $this->assertSame(1, $claim->rewardPlanEntry->streak_day);
+        $this->assertSame(200, $claim->ledgerEntry->amount_units);
+        $this->assertSame($claim->reward_plan_id, $claim->ledgerEntry->metadata['reward_plan_id']);
+        $this->assertSame($claim->reward_plan_entry_id, $claim->ledgerEntry->metadata['reward_plan_entry_id']);
+    }
+
+    public function test_daily_claim_is_idempotent_for_same_reward_day(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $service = app(RewardService::class);
+
+        $firstClaim = $service->claimDailyLoginBonus(
+            $user,
+            CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'),
+        );
+
+        $secondClaim = $service->claimDailyLoginBonus(
+            $user,
+            CarbonImmutable::parse('2026-06-18 12:00:00', 'Europe/Berlin'),
+        );
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+
+        $this->assertTrue($firstClaim->is($secondClaim));
+        $this->assertSame(200, $wallet->balance_units);
+        $this->assertSame(1, RewardClaim::where('reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)->count());
+        $this->assertSame(1, LedgerEntry::where('metadata->reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)->count());
+    }
+
+    public function test_daily_claim_streak_increases_on_consecutive_reward_days(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $service = app(RewardService::class);
+
+        $day1 = $service->claimDailyLoginBonus($user, CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'));
+        $day2 = $service->claimDailyLoginBonus($user, CarbonImmutable::parse('2026-06-19 04:01:00', 'Europe/Berlin'));
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+        $state = UserRewardState::where('user_id', $user->id)
+            ->where('reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)
+            ->firstOrFail();
+
+        $this->assertSame(1, $day1->streak_day);
+        $this->assertSame(2, $day2->streak_day);
+        $this->assertSame(300, $day2->amount_units);
+        $this->assertSame(500, $wallet->balance_units);
+        $this->assertSame(2, $state->streak_count);
+    }
+
+    public function test_daily_claim_streak_resets_after_missed_reward_day(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $service = app(RewardService::class);
+
+        $service->claimDailyLoginBonus($user, CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'));
+        $claimAfterGap = $service->claimDailyLoginBonus($user, CarbonImmutable::parse('2026-06-20 04:01:00', 'Europe/Berlin'));
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+        $state = UserRewardState::where('user_id', $user->id)
+            ->where('reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)
+            ->firstOrFail();
+
+        $this->assertSame(1, $claimAfterGap->streak_day);
+        $this->assertSame(200, $claimAfterGap->amount_units);
+        $this->assertSame(400, $wallet->balance_units);
+        $this->assertSame(1, $state->streak_count);
+        $this->assertSame('2026-06-20', $state->last_claim_date->toDateString());
+    }
+
+    public function test_daily_claim_day_31_grants_superbonus_and_resets_stored_streak(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        UserRewardState::create([
+            'user_id' => $user->id,
+            'reward_type' => RewardClaim::TYPE_DAILY_LOGIN_BONUS,
+            'streak_count' => 30,
+            'last_claim_date' => '2026-07-17',
+            'last_claimed_at' => CarbonImmutable::parse('2026-07-17 04:01:00', 'Europe/Berlin'),
+        ]);
+
+        $claim = app(RewardService::class)->claimDailyLoginBonus(
+            $user,
+            CarbonImmutable::parse('2026-07-18 04:01:00', 'Europe/Berlin'),
+        );
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+        $state = UserRewardState::where('user_id', $user->id)
+            ->where('reward_type', RewardClaim::TYPE_DAILY_LOGIN_BONUS)
+            ->firstOrFail();
+
+        $this->assertSame(31, $claim->streak_day);
+        $this->assertSame(5_000, $claim->amount_units);
+        $this->assertTrue($claim->rewardPlanEntry->is_milestone);
+        $this->assertSame(5_000, $wallet->balance_units);
+        $this->assertSame(0, $state->streak_count);
+        $this->assertSame('2026-07-18', $state->last_claim_date->toDateString());
+    }
+
+    public function test_daily_claim_throws_when_not_claimable(): void
+    {
+        $this->seed(RewardPlanSeeder::class);
+
+        $user = User::factory()->unverified()->create([
+            'created_at' => CarbonImmutable::parse('2026-06-17 10:00:00', 'Europe/Berlin'),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Daily login bonus is not claimable: email_not_verified');
+
+        app(RewardService::class)->claimDailyLoginBonus(
+            $user,
+            CarbonImmutable::parse('2026-06-18 04:01:00', 'Europe/Berlin'),
+        );
+    }
 }
+
