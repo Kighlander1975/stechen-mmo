@@ -385,7 +385,49 @@ Nur anfordern, wenn geprüft werden soll, ob daraus ein projektspezifisches App-
 
 ---
 
-### 4.9 Dependencies
+### 4.9 Lobby-Spielfeld-Prototyp
+
+```text
+docs\lobby-field-prototype.md
+```
+
+Status:
+
+```text
+Nicht in die Haupt-KB aufnehmen.
+Bei Bedarf gezielt anfordern.
+```
+
+Grund:
+
+```text
+Detaildokument zu einem UI-/Spielfeld-Prototyp.
+Die Datei ist nützlich, aber zu spezifisch für die begrenzte Haupt-KB.
+Die Haupt-KB soll über diesen Index nur wissen, dass die Datei existiert und wofür sie gedacht ist.
+```
+
+Nützliche Inhalte:
+
+```text
+- deaktivierter UI-Einstieg zum Spielfeld in der Lobby
+- direkter URL-Zugriff für Entwicklung und Tests
+- Test-URLs für seats=2 bis seats=11
+- sektorbasierte Sitzplatzverteilung
+- aktive Sektor-Markierung als Prototyp
+- aktueller Testwert für aktiven Spieler
+- spätere Anbindung an echten Spielzustand
+```
+
+Bei Bedarf:
+
+```text
+Gezielt anfordern, wenn am Lobby-Spielfeld, an der Sitzplatzgeometrie oder an der aktiven Spieler-Markierung gearbeitet werden soll.
+Beispiel: Bitte gib mir docs\lobby-field-prototype.md oder den relevanten Abschnitt daraus.
+```
+
+---
+
+### 4.10 Dependencies
 
 ```text
 laravel-app\node_modules\

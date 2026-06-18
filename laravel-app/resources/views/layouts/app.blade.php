@@ -49,7 +49,7 @@
             :play-money-balance-units="$playMoneyBalanceUnits"
         />
 
-        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-6xl px-6 py-10">
+        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-[1600px] px-6 py-10">
             @hasSection('content')
                 @yield('content')
             @else
@@ -58,7 +58,7 @@
         </main>
 
         <footer class="border-t border-slate-800">
-            <div class="mx-auto max-w-6xl px-6 py-6 text-sm text-slate-500">
+            <div class="mx-auto max-w-[1600px] px-6 py-6 text-sm text-slate-500">
                 &copy; {{ date('Y') }} Stechen-MMO
             </div>
         </footer>

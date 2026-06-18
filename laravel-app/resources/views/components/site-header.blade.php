@@ -110,7 +110,7 @@
 
 <noscript>
     <header class="border-b border-slate-800 bg-slate-950/80">
-        <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <nav class="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
             <a href="{{ url('/') }}" class="text-lg font-bold tracking-tight text-amber-400">
                 Stechen-MMO
             </a>
@@ -134,7 +134,7 @@
         </nav>
 
         <section class="border-t border-slate-900 bg-slate-900/60">
-            <div class="mx-auto grid max-w-6xl grid-cols-2 items-center gap-6 px-6 py-6">
+            <div class="mx-auto grid max-w-[1600px] grid-cols-2 items-center gap-6 px-6 py-6">
                 <div>
                     <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
                         {{ $headerProps['eyebrow'] }}
