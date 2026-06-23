@@ -492,6 +492,60 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('Verfügbare Spielräume');
     }
 
+    public function test_lobby_room_browser_mount_props_include_room_list_for_vue_rendering(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VUE-LIST-A',
+            'name' => 'Vue Liste A',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VUE-LIST-B',
+            'name' => 'Vue Liste B',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'buy_in' => 'low',
+            'room' => 'ROOM-VUE-LIST-B',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-vue-component="lobby-room-browser"', false)
+            ->assertSee('ROOM-VUE-LIST-A', false)
+            ->assertSee('ROOM-VUE-LIST-B', false)
+            ->assertSee('Vue Liste A')
+            ->assertSee('Vue Liste B')
+            ->assertSee('Verfügbare Spielräume')
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                $roomsByCode = collect($props['rooms'] ?? [])->keyBy('publicCode');
+
+                return ($props['meta']['count'] ?? null) === 2
+                    && ($props['filters']['buy_in'] ?? null) === 'low'
+                    && ($props['selectedRoomCode'] ?? null) === 'ROOM-VUE-LIST-B'
+                    && ($props['selectedRoom']['publicCode'] ?? null) === 'ROOM-VUE-LIST-B'
+                    && $roomsByCode->has('ROOM-VUE-LIST-A')
+                    && $roomsByCode->has('ROOM-VUE-LIST-B')
+                    && ($roomsByCode->get('ROOM-VUE-LIST-B')['buyInDisplay'] ?? null) === '1.000 St$'
+                    && ($roomsByCode->get('ROOM-VUE-LIST-B')['statusTone'] ?? null) === 'success';
+            });
+    }
 
     public function test_lobby_room_browser_vue_detail_payload_is_rendered_into_mount_props(): void
     {

@@ -57,6 +57,30 @@ const selectedRoomDetails = computed(() => {
 
     return props.selectedRoom;
 });
+
+const roomList = computed(() => props.rooms || []);
+
+function roomIsSelected(room) {
+    return Boolean(props.selectedRoomCode) && room?.publicCode === props.selectedRoomCode;
+}
+
+function roomUrl(room) {
+    const query = new URLSearchParams();
+
+    Object.entries(props.filters || {}).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+            query.set(key, value);
+        }
+    });
+
+    if (!roomIsSelected(room) && room?.publicCode) {
+        query.set('room', room.publicCode);
+    }
+
+    const queryString = query.toString();
+
+    return queryString ? `/lobby?${queryString}` : '/lobby';
+}
 </script>
 
 <template>
@@ -72,6 +96,66 @@ const selectedRoomDetails = computed(() => {
             <p class="text-sky-100/80">
                 {{ roomCount }} Räume · {{ selectedLabel }} · {{ activeFilterCount }} aktive Filter
             </p>
+        </div>
+
+        <div
+            class="mt-3 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/50"
+            aria-label="Vue Raumliste"
+        >
+            <div class="flex items-center justify-between border-b border-slate-800 px-3 py-2">
+                <p class="text-[0.65rem] font-black uppercase tracking-wide text-sky-300">
+                    Vue-Raumliste
+                </p>
+
+                <p class="text-[0.65rem] font-semibold text-slate-500">
+                    {{ roomList.length }} Einträge
+                </p>
+            </div>
+
+            <div v-if="roomList.length" class="max-h-56 divide-y divide-slate-900/80 overflow-y-auto">
+                <a
+                    v-for="room in roomList"
+                    :key="room.publicCode"
+                    :href="roomUrl(room)"
+                    class="grid gap-2 px-3 py-2 transition hover:bg-slate-900/80 sm:grid-cols-[minmax(0,1.5fr)_0.8fr_0.7fr_0.7fr_0.6fr]"
+                    :class="roomIsSelected(room) ? 'bg-amber-400/10 outline outline-1 -outline-offset-1 outline-amber-400/50' : 'bg-slate-950/20'"
+                    :aria-current="roomIsSelected(room) ? 'true' : null"
+                >
+                    <span class="min-w-0">
+                        <span class="block truncate font-black text-slate-100">
+                            {{ room.name }}
+                        </span>
+                        <span class="block truncate font-mono text-[0.6rem] text-slate-600">
+                            {{ room.publicCode }}
+                        </span>
+                    </span>
+
+                    <span class="text-right font-bold text-slate-200 sm:text-left">
+                        {{ room.buyInDisplay }}
+                    </span>
+
+                    <span class="text-right font-semibold text-slate-300 sm:text-left">
+                        {{ room.playersDisplay }}
+                    </span>
+
+                    <span class="text-slate-300">
+                        {{ room.startDisplay }}
+                    </span>
+
+                    <span
+                        class="justify-self-start rounded-full border px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide"
+                        :class="room.statusTone === 'success'
+                            ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
+                            : 'border-slate-700 bg-slate-950/70 text-slate-400'"
+                    >
+                        {{ room.statusDisplay }}
+                    </span>
+                </a>
+            </div>
+
+            <div v-else class="px-3 py-6 text-center text-slate-500">
+                Keine Räume im Vue-Payload.
+            </div>
         </div>
 
         <article
