@@ -537,7 +537,10 @@ class GameRoomLobbyTest extends TestCase
                 $roomsByCode = collect($props['rooms'] ?? [])->keyBy('publicCode');
 
                 return ($props['meta']['count'] ?? null) === 2
+                    && ($props['filters']['status'] ?? null) === null
+                    && ($props['filters']['start_mode'] ?? null) === null
                     && ($props['filters']['buy_in'] ?? null) === 'low'
+                    && ($props['filters']['players'] ?? null) === null
                     && ($props['selectedRoomCode'] ?? null) === 'ROOM-VUE-LIST-B'
                     && ($props['selectedRoom']['publicCode'] ?? null) === 'ROOM-VUE-LIST-B'
                     && $roomsByCode->has('ROOM-VUE-LIST-A')
