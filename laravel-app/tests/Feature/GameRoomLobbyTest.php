@@ -408,6 +408,9 @@ class GameRoomLobbyTest extends TestCase
                     && ($props['filters']['buy_in'] ?? null) === 'low'
                     && ($props['selectedRoomCode'] ?? null) === 'ROOM-VIEW-PROPS'
                     && ($props['selectedRoomVisible'] ?? null) === true
+                    && ($props['selectedRoom']['publicCode'] ?? null) === 'ROOM-VIEW-PROPS'
+                    && ($props['selectedRoom']['prizePoolDisplay'] ?? null) === '3.920 St$'
+                    && ($props['selectedRoom']['feeDisplay'] ?? null) === 'abzgl. 2,00 % Gebühr'
                     && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-VIEW-PROPS'
                     && ($props['rooms'][0]['buyInDisplay'] ?? null) === '1.000 St$';
             });
@@ -452,6 +455,8 @@ class GameRoomLobbyTest extends TestCase
                 return ($props['meta']['count'] ?? null) === 1
                     && array_key_exists('selectedRoomCode', $props)
                     && $props['selectedRoomCode'] === null
+                    && array_key_exists('selectedRoom', $props)
+                    && $props['selectedRoom'] === null
                     && ($props['selectedRoomVisible'] ?? null) === false
                     && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-VIEW-VISIBLE';
             });
@@ -485,6 +490,38 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('ROOM-VUE-ISLAND', false)
             ->assertSee('Vue Island Tisch')
             ->assertSee('Verfügbare Spielräume');
+    }
+
+
+    public function test_lobby_room_browser_vue_detail_payload_is_rendered_into_mount_props(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VUE-DETAIL',
+            'name' => 'Vue Detail Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 2_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 250,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'buy_in' => 'low',
+            'room' => 'ROOM-VUE-DETAIL',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-vue-component="lobby-room-browser"', false)
+            ->assertSee('Vue Detail Tisch')
+            ->assertSee('ROOM-VUE-DETAIL', false)
+            ->assertSee('7.800 St$', false)
+            ->assertSee('abzgl. 2,50 % Gebühr', false);
     }
 
     public function test_guest_is_redirected_from_lobby_rooms_api_to_login(): void
@@ -525,6 +562,7 @@ class GameRoomLobbyTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('selectedRoom', null)
             ->assertJsonPath('selectedRoomCode', null)
             ->assertJsonPath('selectedRoomVisible', false)
             ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-001')
@@ -643,6 +681,8 @@ class GameRoomLobbyTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-API-KEEP')
+            ->assertJsonPath('selectedRoom.buyInDisplay', '25.000 St$')
             ->assertJsonPath('selectedRoomCode', 'ROOM-API-KEEP')
             ->assertJsonPath('selectedRoomVisible', true);
     }
@@ -716,4 +756,3 @@ class GameRoomLobbyTest extends TestCase
     }
 
 }
-

@@ -17,6 +17,7 @@ class LobbyRoomBrowserPayloadService
      * @return array{
      *     rooms: list<array<string, mixed>>,
      *     filters: array{status: ?string, start_mode: ?string, buy_in: ?string, players: ?string},
+     *     selectedRoom: ?array<string, mixed>,
      *     selectedRoomCode: ?string,
      *     selectedRoomVisible: bool,
      *     meta: array{count: int}
@@ -28,8 +29,11 @@ class LobbyRoomBrowserPayloadService
         $rooms = $this->roomQueryService->getFilteredRooms($normalizedFilters);
 
         $selectedRoomCode = $this->normalizeSelectedRoomCode($selectedRoomCode);
-        $selectedRoomVisible = $selectedRoomCode !== null
-            && $rooms->contains(fn (GameRoom $room): bool => $room->public_code === $selectedRoomCode);
+        $selectedRoom = $selectedRoomCode !== null
+            ? $rooms->first(fn (GameRoom $room): bool => $room->public_code === $selectedRoomCode)
+            : null;
+
+        $selectedRoomVisible = $selectedRoom !== null;
 
         if (! $selectedRoomVisible) {
             $selectedRoomCode = null;
@@ -38,6 +42,7 @@ class LobbyRoomBrowserPayloadService
         return [
             'rooms' => $this->formatRooms($rooms),
             'filters' => $normalizedFilters,
+            'selectedRoom' => $selectedRoom instanceof GameRoom ? $this->formatRoom($selectedRoom) : null,
             'selectedRoomCode' => $selectedRoomCode,
             'selectedRoomVisible' => $selectedRoomVisible,
             'meta' => [
