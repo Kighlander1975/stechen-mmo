@@ -378,6 +378,85 @@ class GameRoomLobbyTest extends TestCase
 
 
 
+
+    public function test_lobby_view_receives_initial_room_browser_props(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VIEW-PROPS',
+            'name' => 'Initialer Props Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 200,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'buy_in' => 'low',
+            'room' => 'ROOM-VIEW-PROPS',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['meta']['count'] ?? null) === 1
+                    && ($props['filters']['buy_in'] ?? null) === 'low'
+                    && ($props['selectedRoomCode'] ?? null) === 'ROOM-VIEW-PROPS'
+                    && ($props['selectedRoomVisible'] ?? null) === true
+                    && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-VIEW-PROPS'
+                    && ($props['rooms'][0]['buyInDisplay'] ?? null) === '1.000 St$';
+            });
+    }
+
+    public function test_lobby_initial_room_browser_props_clear_hidden_selected_room(): void
+    {
+        $user = User::factory()->create();
+
+        $hiddenRoom = GameRoom::create([
+            'public_code' => 'ROOM-VIEW-HIDDEN',
+            'name' => 'Versteckter Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VIEW-VISIBLE',
+            'name' => 'Sichtbarer High Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'buy_in' => 'high',
+            'room' => $hiddenRoom->public_code,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['meta']['count'] ?? null) === 1
+                    && array_key_exists('selectedRoomCode', $props)
+                    && $props['selectedRoomCode'] === null
+                    && ($props['selectedRoomVisible'] ?? null) === false
+                    && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-VIEW-VISIBLE';
+            });
+    }
+
     public function test_guest_is_redirected_from_lobby_rooms_api_to_login(): void
     {
         $response = $this->get(route('lobby.rooms'));

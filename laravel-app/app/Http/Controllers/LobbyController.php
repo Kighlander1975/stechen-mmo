@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\GameRoom;
+use App\Services\Lobby\LobbyRoomBrowserPayloadService;
 use App\Services\Lobby\LobbyRoomQueryService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class LobbyController extends Controller
 {
-    public function __invoke(Request $request, LobbyRoomQueryService $lobbyRoomQueryService): View
-    {
+    public function __invoke(
+        Request $request,
+        LobbyRoomQueryService $lobbyRoomQueryService,
+        LobbyRoomBrowserPayloadService $lobbyRoomBrowserPayloadService,
+    ): View {
         $filters = [
             'status' => $request->query('status'),
             'start_mode' => $request->query('start_mode'),
@@ -38,6 +42,10 @@ class LobbyController extends Controller
             'gameRooms' => $lobbyRoomQueryService->getFilteredRooms($filters),
             'filters' => $filters,
             'selectedRoom' => $selectedRoom,
+            'lobbyRoomBrowserProps' => $lobbyRoomBrowserPayloadService->build(
+                $filters,
+                $selectedRoomCode !== '' ? $selectedRoomCode : null,
+            ),
         ]);
     }
 }
