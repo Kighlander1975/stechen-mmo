@@ -267,6 +267,18 @@
             @else
                 <div class="flex min-h-0 flex-1 flex-col gap-3 pt-3">
 
+                @php
+                    $lobbyRoomBrowserJson = json_encode(
+                        $lobbyRoomBrowserProps,
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
+                    );
+                @endphp
+
+                <div
+                    data-vue-component="lobby-room-browser"
+                    data-props='{{ $lobbyRoomBrowserJson }}'
+                ></div>
+
         <section class="grid h-[250px] shrink-0 items-stretch gap-3 overflow-hidden xl:grid-cols-12">
             <article class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 xl:col-span-5">
                 <div class="flex items-start justify-between gap-4">

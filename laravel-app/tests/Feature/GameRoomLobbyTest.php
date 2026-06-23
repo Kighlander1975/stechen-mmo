@@ -457,6 +457,36 @@ class GameRoomLobbyTest extends TestCase
             });
     }
 
+
+    public function test_lobby_renders_lobby_room_browser_vue_island_mount(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-VUE-ISLAND',
+            'name' => 'Vue Island Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'buy_in' => 'low',
+            'room' => 'ROOM-VUE-ISLAND',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-vue-component="lobby-room-browser"', false)
+            ->assertSee('ROOM-VUE-ISLAND', false)
+            ->assertSee('Vue Island Tisch')
+            ->assertSee('Verfügbare Spielräume');
+    }
+
     public function test_guest_is_redirected_from_lobby_rooms_api_to_login(): void
     {
         $response = $this->get(route('lobby.rooms'));

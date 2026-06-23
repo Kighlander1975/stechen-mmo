@@ -1,10 +1,12 @@
 import { createApp } from 'vue';
 import SiteHeader from './components/layout/SiteHeader.vue';
 import AppStatus from './components/AppStatus.vue';
+import LobbyRoomBrowser from './components/lobby/LobbyRoomBrowser.vue';
 
 const components = {
     'site-header': SiteHeader,
     'app-status': AppStatus,
+    'lobby-room-browser': LobbyRoomBrowser,
 };
 
 function parseProps(element) {
