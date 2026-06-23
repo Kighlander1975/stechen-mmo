@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
 use App\Http\Controllers\Admin\RoomSupplyTestModeController;
 use App\Http\Controllers\LobbyController;
+use App\Http\Controllers\LobbyRoomsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
 use App\Models\SystemSetting;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('a
 Route::get('/lobby', LobbyController::class)
     ->middleware(['auth', 'verified'])
     ->name('lobby');
+
+Route::get('/lobby/rooms', LobbyRoomsController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('lobby.rooms');
 
 Route::get('/dashboard', function (RewardService $rewardService) {
     $playMoneyWallet = Wallet::query()

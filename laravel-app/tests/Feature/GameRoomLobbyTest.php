@@ -377,6 +377,180 @@ class GameRoomLobbyTest extends TestCase
     }
 
 
+
+    public function test_guest_is_redirected_from_lobby_rooms_api_to_login(): void
+    {
+        $response = $this->get(route('lobby.rooms'));
+
+        $response->assertRedirect('/login');
+    }
+
+    public function test_unverified_user_is_redirected_from_lobby_rooms_api_to_verification_notice(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)->get(route('lobby.rooms'));
+
+        $response->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_lobby_rooms_api_returns_room_payload(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-001',
+            'name' => 'API Mikro Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 50,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 200,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('selectedRoomCode', null)
+            ->assertJsonPath('selectedRoomVisible', false)
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-001')
+            ->assertJsonPath('rooms.0.name', 'API Mikro Raum')
+            ->assertJsonPath('rooms.0.buyInDisplay', '50 St$')
+            ->assertJsonPath('rooms.0.playersDisplay', '0 / 2')
+            ->assertJsonPath('rooms.0.startDisplay', 'Wenn voll')
+            ->assertJsonPath('rooms.0.statusDisplay', 'Offen')
+            ->assertJsonPath('rooms.0.prizePoolDisplay', '98 St$')
+            ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
+    }
+
+    public function test_lobby_rooms_api_filters_rooms(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-MIC',
+            'name' => 'API Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-HIG',
+            'name' => 'API High Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'buy_in' => 'high',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('filters.buy_in', 'high')
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-HIG');
+
+        $this->assertStringNotContainsString('ROOM-API-MIC', $response->getContent());
+    }
+
+    public function test_lobby_rooms_api_clears_selected_room_when_filter_hides_it(): void
+    {
+        $user = User::factory()->create();
+
+        $selectedRoom = GameRoom::create([
+            'public_code' => 'ROOM-API-SELECTED',
+            'name' => 'Ausgewählter Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-VISIBLE',
+            'name' => 'Sichtbarer High Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'buy_in' => 'high',
+            'room' => $selectedRoom->public_code,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('selectedRoomCode', null)
+            ->assertJsonPath('selectedRoomVisible', false)
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-VISIBLE');
+    }
+
+    public function test_lobby_rooms_api_keeps_selected_room_when_visible(): void
+    {
+        $user = User::factory()->create();
+
+        $selectedRoom = GameRoom::create([
+            'public_code' => 'ROOM-API-KEEP',
+            'name' => 'Sichtbar ausgewählter Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'buy_in' => 'high',
+            'room' => $selectedRoom->public_code,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('selectedRoomCode', 'ROOM-API-KEEP')
+            ->assertJsonPath('selectedRoomVisible', true);
+    }
+
+    public function test_lobby_rooms_api_rejects_invalid_filter_values(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'buy_in' => 'invalid-category',
+        ]));
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('buy_in');
+    }
+
     public function test_lobby_header_shows_play_money_wallet_for_authenticated_user(): void
     {
         $user = User::factory()->create();
