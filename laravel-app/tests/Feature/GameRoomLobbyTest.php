@@ -426,9 +426,11 @@ class GameRoomLobbyTest extends TestCase
         $response->assertSee('Berlin (2)');
         $response->assertSee('ROOM-DETAIL-001');
         $response->assertSee('50 St$');
-        $response->assertSee('2,00 %');
+        $response->assertSee('Gewinnpool');
+        $response->assertSee('98 St$');
         $response->assertSee('Wenn voll');
         $response->assertSee('Beitreten');
     }
 
 }
+
