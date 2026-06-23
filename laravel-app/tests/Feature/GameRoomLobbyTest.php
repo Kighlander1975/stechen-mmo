@@ -238,8 +238,11 @@ class GameRoomLobbyTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Lobby')
-            ->assertSee('Spielräume')
-            ->assertSee('Filter anwenden');
+            ->assertSee('data-vue-component="lobby-room-browser"', false)
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['meta']['count'] ?? null) === 0
+                    && ($props['selectedRoom'] ?? null) === null;
+            });
     }
 
     public function test_lobby_lists_game_rooms(): void
@@ -489,7 +492,10 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('data-vue-component="lobby-room-browser"', false)
             ->assertSee('ROOM-VUE-ISLAND', false)
             ->assertSee('Vue Island Tisch')
-            ->assertSee('Verfügbare Spielräume');
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['selectedRoomCode'] ?? null) === 'ROOM-VUE-ISLAND'
+                    && ($props['selectedRoom']['name'] ?? null) === 'Vue Island Tisch';
+            });
     }
 
     public function test_lobby_room_browser_mount_props_include_room_list_for_vue_rendering(): void
@@ -532,7 +538,6 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('ROOM-VUE-LIST-B', false)
             ->assertSee('Vue Liste A')
             ->assertSee('Vue Liste B')
-            ->assertSee('Verfügbare Spielräume')
             ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
                 $roomsByCode = collect($props['rooms'] ?? [])->keyBy('publicCode');
 
@@ -804,12 +809,18 @@ class GameRoomLobbyTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Berlin (2)');
-        $response->assertSee('ROOM-DETAIL-001');
+        $response->assertSee('ROOM-DETAIL-001', false);
         $response->assertSee('50 St$');
-        $response->assertSee('Gewinnpool');
-        $response->assertSee('98 St$');
-        $response->assertSee('Wenn voll');
-        $response->assertSee('Beitreten');
+
+        $response->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+            return ($props['selectedRoomCode'] ?? null) === 'ROOM-DETAIL-001'
+                && ($props['selectedRoom']['publicCode'] ?? null) === 'ROOM-DETAIL-001'
+                && ($props['selectedRoom']['name'] ?? null) === 'Berlin (2)'
+                && ($props['selectedRoom']['buyInDisplay'] ?? null) === '50 St$'
+                && ($props['selectedRoom']['prizePoolDisplay'] ?? null) === '98 St$'
+                && ($props['selectedRoom']['feeDisplay'] ?? null) === 'abzgl. 2,00 % Gebühr'
+                && ($props['selectedRoom']['startDisplay'] ?? null) === 'Wenn voll';
+        });
     }
 
 }
