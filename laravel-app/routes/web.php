@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
+use App\Http\Controllers\Admin\RoomSupplyTestModeController;
 use App\Http\Controllers\LobbyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
+use App\Models\SystemSetting;
 use App\Models\Wallet;
 use App\Services\RewardService;
 use Illuminate\Support\Facades\Route;
@@ -36,8 +38,20 @@ Route::get('/api/app-status', function () {
 
 Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', function () {
-        return view('admin.dashboard');
+        $roomSupplyTestModeEnabled = SystemSetting::roomSupplyIgnoreWalletEligibilityIsEnabled();
+        $roomSupplyTestModeExpiresAt = SystemSetting::roomSupplyIgnoreWalletEligibilityExpiresAt();
+
+        return view('admin.dashboard', [
+            'roomSupplyTestModeEnabled' => $roomSupplyTestModeEnabled,
+            'roomSupplyTestModeExpiresAt' => $roomSupplyTestModeExpiresAt,
+        ]);
     })->name('dashboard');
+
+    Route::post('/game-rooms/supply-test-mode/enable', [RoomSupplyTestModeController::class, 'enable'])
+        ->name('game-rooms.supply-test-mode.enable');
+
+    Route::post('/game-rooms/supply-test-mode/disable', [RoomSupplyTestModeController::class, 'disable'])
+        ->name('game-rooms.supply-test-mode.disable');
 
     Route::get('/rewards/registration-bonus-backfill', [RegistrationBonusBackfillController::class, 'index'])
         ->name('rewards.registration-bonus-backfill.index');

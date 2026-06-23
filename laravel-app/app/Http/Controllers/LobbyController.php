@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GameRoom;
 use App\Services\Lobby\LobbyRoomQueryService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,9 +18,26 @@ class LobbyController extends Controller
             'players' => $request->query('players'),
         ];
 
+        $selectedRoom = null;
+        $selectedRoomCode = $request->string('room')->trim()->toString();
+
+        if ($selectedRoomCode !== '') {
+            $selectedRoom = GameRoom::query()
+                ->withCount('activePlayers')
+                ->where('public_code', $selectedRoomCode)
+                ->whereIn('status', [
+                    GameRoom::STATUS_OPEN,
+                    GameRoom::STATUS_FULL,
+                    GameRoom::STATUS_RUNNING,
+                    GameRoom::STATUS_FINISHED,
+                ])
+                ->first();
+        }
+
         return view('lobby.index', [
             'gameRooms' => $lobbyRoomQueryService->getFilteredRooms($filters),
             'filters' => $filters,
+            'selectedRoom' => $selectedRoom,
         ]);
     }
 }

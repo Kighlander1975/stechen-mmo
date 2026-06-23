@@ -399,4 +399,36 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;1.234 St$&quot;', false);
     }
 
+    public function test_lobby_shows_selected_room_details(): void
+    {
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-DETAIL-001',
+            'name' => 'Berlin (2)',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => 'PLAY_MONEY',
+            'currency_code' => 'ST$',
+            'buy_in_units' => 50,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 200,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->get(route('lobby', ['room' => $room->public_code]));
+
+        $response->assertOk();
+        $response->assertSee('Berlin (2)');
+        $response->assertSee('ROOM-DETAIL-001');
+        $response->assertSee('50 St$');
+        $response->assertSee('2,00 %');
+        $response->assertSee('Wenn voll');
+        $response->assertSee('Beitreten');
+    }
+
 }

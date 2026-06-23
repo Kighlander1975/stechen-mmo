@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\GameRooms\GameRoomSupplyService;
 use App\Services\RegistrationBonusBackfillService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -43,3 +44,27 @@ Artisan::command('rewards:backfill-registration-bonus {--dry-run : Preview eligi
 
     return $summary['failed'] > 0 ? self::FAILURE : self::SUCCESS;
 })->purpose('Backfill registration bonus rewards for existing users');
+
+
+Artisan::command('game-rooms:supply {--ignore-wallet-eligibility : Use local/testing admin test mode to create rooms without matching wallets}', function (GameRoomSupplyService $gameRoomSupplyService) {
+    $summary = $gameRoomSupplyService->supplySitAndGoRooms(
+        ignoreWalletEligibilityRequested: (bool) $this->option('ignore-wallet-eligibility'),
+    );
+
+    $this->info('Game room supply completed.');
+
+    $this->table(
+        ['Metric', 'Value'],
+        [
+            ['evaluated', $summary['evaluated']],
+            ['eligible', $summary['eligible']],
+            ['created', $summary['created']],
+            ['skipped', $summary['skipped']],
+            ['override_requested', $summary['override_requested'] ? 'yes' : 'no'],
+            ['override_used', $summary['override_used'] ? 'yes' : 'no'],
+            ['override_reason', $summary['override_reason'] ?? '-'],
+        ],
+    );
+
+    return self::SUCCESS;
+})->purpose('Supply open Sit\'n\'Go game rooms dynamically');

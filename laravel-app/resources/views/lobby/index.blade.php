@@ -354,42 +354,104 @@
                             Rauminformationen
                         </p>
                         <h2 class="mt-1 text-xl font-black tracking-tight text-slate-100">
-                            Kein Raum ausgewählt
+                            {{ $selectedRoom ? $selectedRoom->name : 'Kein Raum ausgewählt' }}
                         </h2>
+
+                        @if ($selectedRoom)
+                            <p class="mt-1 text-sm font-semibold text-slate-400">
+                                {{ $selectedRoom->public_code }}
+                            </p>
+                        @endif
                     </div>
 
-                    <span class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    <span class="rounded-full border {{ $selectedRoom ? 'border-amber-400/40 bg-amber-400/10 text-amber-200' : 'border-slate-700 bg-slate-950/70 text-slate-500' }} px-3 py-1 text-xs font-bold uppercase tracking-wide">
                         vorbereitet
                     </span>
                 </div>
 
-                <div class="mt-4 flex flex-1 flex-col justify-between rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 p-4">
+                <div class="mt-4 flex flex-1 flex-col justify-between rounded-2xl border {{ $selectedRoom ? 'border-amber-400/30 bg-slate-950/60' : 'border-dashed border-slate-700 bg-slate-950/40' }} p-4">
                     <div>
-                        <p class="text-sm leading-6 text-slate-400">
-                            Klicke später auf einen Raum in der Raumliste, um hier Details, Teilnahmebedingungen und Statusinformationen anzuzeigen.
-                        </p>
+                        @if ($selectedRoom)
+                            <p class="text-sm leading-6 text-slate-400">
+                                Dieser Raum ist für die spätere Teilnahme vorbereitet. Beitritt, Buy-in-Reservierung und Spielstart bleiben in diesem Schritt deaktiviert.
+                            </p>
 
-                        <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-                            <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
-                                <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Raum</dt>
-                                <dd class="mt-1 font-semibold text-slate-300">-</dd>
-                            </div>
+                            <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Raum</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ $selectedRoom->name }}</dd>
+                                </div>
 
-                            <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
-                                <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Buy-in</dt>
-                                <dd class="mt-1 font-semibold text-slate-300">-</dd>
-                            </div>
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Buy-in</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ number_format($selectedRoom->buy_in_units, 0, ',', '.') }} St$</dd>
+                                </div>
 
-                            <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
-                                <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Spieler</dt>
-                                <dd class="mt-1 font-semibold text-slate-300">-</dd>
-                            </div>
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Spieler</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ $selectedRoom->active_players_count }} / {{ $selectedRoom->max_players }}</dd>
+                                </div>
 
-                            <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
-                                <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Start</dt>
-                                <dd class="mt-1 font-semibold text-slate-300">-</dd>
-                            </div>
-                        </dl>
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Start</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ $selectedRoom->isScheduled() ? 'Geplant' : 'Wenn voll' }}</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Status</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">
+                                        {{ match ($selectedRoom->status) {
+                                            GameRoom::STATUS_OPEN => 'Offen',
+                                            GameRoom::STATUS_FULL => 'Voll',
+                                            GameRoom::STATUS_RUNNING => 'Läuft',
+                                            GameRoom::STATUS_FINISHED => 'Beendet',
+                                            default => $selectedRoom->status,
+                                        } }}
+                                    </dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Rake</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ number_format($selectedRoom->rake_basis_points / 100, 2, ',', '.') }} %</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Typ</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">Sit'n'Go</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Währung</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">{{ $selectedRoom->currency_code }}</dd>
+                                </div>
+                            </dl>
+                        @else
+                            <p class="text-sm leading-6 text-slate-400">
+                                Klicke auf einen Raum in der Raumliste, um hier Details, Teilnahmebedingungen und Statusinformationen anzuzeigen.
+                            </p>
+
+                            <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Raum</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">-</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Buy-in</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">-</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Spieler</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">-</dd>
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-3">
+                                    <dt class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Start</dt>
+                                    <dd class="mt-1 font-semibold text-slate-300">-</dd>
+                                </div>
+                            </dl>
+                        @endif
                     </div>
 
                     <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -426,7 +488,10 @@
                 <div class="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
                     <div class="grid gap-4">
                         @forelse ($gameRooms as $room)
-                            <article class="rounded-3xl border border-slate-800 bg-slate-950/50 p-5 shadow-xl shadow-black/10 transition hover:border-amber-400/50 hover:bg-slate-950/80">
+                            <a
+                                href="{{ route('lobby', array_merge(request()->query(), ['room' => $room->public_code])) }}"
+                                class="{{ ($selectedRoom?->id ?? null) === $room->id ? 'border-amber-400/70 bg-amber-400/10' : 'border-slate-800 bg-slate-950/50 hover:border-amber-400/50 hover:bg-slate-950/80' }} block rounded-3xl border p-5 shadow-xl shadow-black/10 transition"
+                            >
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
                                         <div class="flex flex-wrap items-center gap-2">
@@ -475,13 +540,13 @@
                                     </div>
 
                                     <div class="rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-400 lg:min-w-52">
-                                        <p class="font-semibold text-slate-200">Beitritt vorbereitet</p>
+                                        <p class="font-semibold text-slate-200">Details anzeigen</p>
                                         <p class="mt-1 text-xs leading-5">
-                                            Join, Buy-in-Reserve und Leave folgen als separater Service-Schritt.
+                                            Beitritt, Buy-in-Reserve und Leave folgen als separater Service-Schritt.
                                         </p>
                                     </div>
                                 </div>
-                            </article>
+                            </a>
                         @empty
                             <div class="rounded-3xl border border-dashed border-slate-700 bg-slate-950/40 p-10 text-center">
                                 <h3 class="text-lg font-black text-slate-100">Keine Räume gefunden</h3>
