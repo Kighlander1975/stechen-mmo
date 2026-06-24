@@ -1,6 +1,6 @@
 # KB Source Index
 
-Stand: 2026-06-16
+Stand: 2026-06-24
 
 Dieses Dokument beschreibt, welche Projektdateien in die KI-Projekt-KB aufgenommen wurden, welche bewusst ausgeschlossen wurden und welche ausgeschlossenen Dateien bei Bedarf gezielt als Quelle nachgereicht werden können.
 
@@ -34,19 +34,24 @@ Wenn Informationen aus ausgeschlossenen Dateien benötigt werden, soll der KI-As
 
 ---
 
-## 2. In die Haupt-KB aufgenommene Dateien
+## 2. Empfohlene Haupt-KB-Dateien
 
-Die folgenden Dateien bilden die aktuelle Kern-KB:
+Die Haupt-KB soll schlank bleiben. Zielgröße ist möglichst maximal 15 Dateien, bevorzugt etwa 12 aktive Referenzdateien.
+
+Aktuell empfohlene Haupt-KB-Auswahl:
 
 ```text
+docs\KB_SOURCE_INDEX.md
 docs\PROJECT_OVERVIEW.md
-docs\tech-stack.md
+docs\PHASES_INDEX.md
 docs\ROADMAP.md
-docs\MVP_CONCEPT.md
 docs\GAME_RULES.md
-docs\PHASE_1_FOUNDATION.md
-docs\PHASE_2_AUTH_AND_USERS.md
-docs\rollen-und-berechtigungen.md
+docs\PHASE_3_WALLET_BUYIN_AND_LOBBY.md
+docs\phase-3-game-room-creation.md
+docs\reward-room-economy-planning.md
+docs\lobby-room-browser-vue-state.md
+docs\FRONTEND_VUE_ISLANDS.md
+docs\BLADE_LAYOUT_COMPONENTS.md
 docs\HOMESERVER_FALLBACK.md
 ```
 
@@ -54,33 +59,116 @@ docs\HOMESERVER_FALLBACK.md
 
 Diese Dateien gelten als primäre Quelle für:
 
-- Projektüberblick
-- Tech-Stack
-- MVP-Ziele
-- Spielregeln
+- Projektüberblick und aktuelles Zielbild
+- aktuelle Phasenübersicht
 - Roadmap
-- Phase 1 Foundation
-- Phase 2 Auth/User-Konzept
-- Rollen-/Berechtigungsgrundlagen
-- HomeServer-/Fallback-Grundidee
+- Spielregeln
+- Phase 3 Wallet, Buy-in, Lobby und Raumversorgung
+- Raum-Lifecycle und systemseitige Raumerzeugung
+- Reward-, Rake- und Raumökonomie
+- aktuellen Lobby-Raumbrowser mit Vue-Island
+- Frontend-/Vue-Island-Architektur
+- Blade-/Layout-Komponenten
+- HomeServer-/Realtime-Fallback-Grundidee
+
+### Bei Bedarf gezielt anfordern
+
+Diese Dateien sind weiterhin nützlich, sollen aber nicht dauerhaft die aktive Haupt-KB vergrößern, solange ihr Inhalt nicht konkret benötigt wird oder teilweise durch aktuellere Dokumente überholt ist:
+
+```text
+docs\PHASE_1_FOUNDATION.md
+docs\PHASE_2_AUTH_AND_USERS.md
+docs\MVP_CONCEPT.md
+docs\rollen-und-berechtigungen.md
+docs\Stechen-Serverkonzept.md
+docs\tech-stack.md
+docs\lobby-field-prototype.md
+```
+
+Bei Fragen zu älteren Phasen, MVP-Grundlagen, Rollen-/Berechtigungsdetails, Serverkonzepten oder dem Spielfeld-Prototyp soll der KI-Assistent diese Dateien gezielt anfordern, statt ihre Inhalte als aktuelle Haupt-KB vorauszusetzen.
 
 ---
 
-## 3. Aktuelle Projektannahmen für die KB
+## 3. Aktuelle Projektannahmen und Entwicklungsstand für die KB
 
 Diese Annahmen gelten für die Einordnung der KB:
 
 ```text
 Phase 1 ist abgeschlossen.
-Phase 2 läuft bereits.
+Phase 2 ist weitgehend umgesetzt.
+Phase 3 Wallet, Buy-in, Lobby und Raumversorgung ist aktueller Fokus.
 Laravel bleibt autoritative Backend- und Spielstandsquelle.
 MVP arbeitet Polling-first.
 HomeServer/WebSocket ist optional und späterer Realtime-/Fallback-Baustein.
 Blade ist die Basis.
 Vue 3 wird als Inselarchitektur verwendet.
 Inertia.js ist aktuell nicht Projektbasis.
-Rollen-/Berechtigungen werden in Phase 2 nur einfach vorbereitet.
-Komplexe Admin- oder Rechteverwaltung ist kein Phase-2-Ziel.
+Rollen-/Berechtigungen sind vorbereitet, aber keine komplexe Rechteverwaltung im aktuellen Fokus.
+```
+
+### Technisch belegter Entwicklungsstand am 2026-06-24
+
+Der aktuelle Stand wurde gegen Projektdateien und vorhandene Tests plausibilisiert:
+
+```text
+- Auth-geschützte Lobby existiert.
+- Verifizierte Benutzer dürfen die Lobby sehen.
+- Gäste werden zum Login geleitet.
+- Unverifizierte Benutzer werden zur Verifikation geleitet.
+- /lobby rendert die Lobby.
+- /lobby/rooms liefert eine validierte JSON-Payload für den Raumbrowser.
+- LobbyRoomBrowser.vue liegt unter laravel-app/resources/js/components/lobby/.
+- vue-islands.js registriert lobby-room-browser.
+- Die Lobby nutzt x-app-layout.
+- Tailwind scannt resources/js/**/*.vue und resources/js/**/*.js.
+- GameRoom und GameRoomPlayer existieren.
+- GameRoomPlayer kennt reserved, joined, ready, playing, left und cancelled.
+- Wallets haben balance_units und reserved_units.
+- LedgerEntry und WalletService unterstützen Reservieren und Freigeben reservierter Einheiten.
+- WalletService nutzt Transaktionen, Idempotency und lockForUpdate.
+- GameRoomSupplyService erzeugt systemseitig Sit'n'Go-Räume.
+- Raumversorgung berücksichtigt verfügbare Wallets.
+- Ein lokaler/testing Override für Raumversorgung ohne Wallet-Eignung existiert.
+- Tests existieren für Lobby, Wallet, Ledger und Raumversorgung.
+```
+
+### Fachlich entschieden, aber noch nicht vollständig technisch umgesetzt
+
+Diese Punkte sind für die nächsten Implementierungen vorgemerkt und dürfen nicht als bereits vollständig umgesetzt interpretiert werden:
+
+```text
+- mehrere Vorstart-Anmeldungen in verschiedenen Räumen;
+- nur ein laufendes Spiel pro Spieler;
+- zuerst startender Raum übernimmt Führung;
+- automatische Entfernung aus anderen wartenden Räumen;
+- 1:1-Freigabe anderer Buy-in-Reservierungen;
+- Startphase 5 bis 10 Sekunden;
+- Konfliktlösung per Startphasen-Zeitstempel;
+- Abbruch oder Rücksetzung konkurrierender Räume;
+- UI-Hinweis bei nicht startendem Raum;
+- Chat nachgelagert;
+- Homeserver/WebSocket erst ab Alpha.
+```
+
+### Nächster Implementierungsblock
+
+Der nächste technische Block sollte voraussichtlich lauten:
+
+```text
+Room Join, Buy-in Reservation und Startphase
+```
+
+Wahrscheinliche Bausteine:
+
+```text
+- PlayerEligibilityService oder vergleichbare Policy-/Gate-Struktur;
+- GameRoomJoinService für atomaren Raumbeitritt;
+- Nutzung von WalletService::reserveUnits für Buy-in-Reservierungen;
+- GameRoomLeaveService oder ReservationReleaseService für Freigaben;
+- Datenbank-Constraints gegen doppelte aktive Teilnahme im selben Raum;
+- Startphasen-Modellierung, ggf. GameRoom::STATUS_STARTING oder separate Startphasen-Felder;
+- Start-Koordinator für Konflikte zwischen mehreren startbereiten Räumen;
+- Tests für Mehrfach-Vorstart, zu wenig Guthaben, doppelte Teilnahme, Reservierungsfreigabe und Startkonflikte.
 ```
 
 ---
