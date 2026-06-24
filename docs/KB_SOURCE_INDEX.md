@@ -427,7 +427,50 @@ Beispiel: Bitte gib mir docs\lobby-field-prototype.md oder den relevanten Abschn
 
 ---
 
-### 4.10 Dependencies
+### 4.10 Lobby-Raumbrowser mit Vue-Island
+
+```text
+docs\lobby-room-browser-vue-state.md
+```
+
+Status:
+
+```text
+Für die Haupt-KB geeignet oder gezielt als aktuelle Lobby-Quelle aufnehmen.
+```
+
+Grund:
+
+```text
+Aktuelles Detaildokument zum Lobby-Raumbrowser nach dem Umbau auf Vue-Island.
+Dokumentiert Raumliste, Filter, Rauminformationen, clientseitige Raumauswahl ohne Reload und den wichtigen Tailwind-/Vite-Fallstrick bei Vue-Dateien.
+```
+
+Nützliche Inhalte:
+
+```text
+- aktueller Stand des Lobby-Raumbrowsers
+- Abgrenzung zum älteren Lobby-Spielfeld-Prototyp
+- Entwicklung von Blade-/Server-rendered Ansatz zu Vue-Island
+- aktuelle Layoutstruktur: Filter, Rauminformationen, Raumliste und Chat
+- lokale Raumauswahl in Vue ohne Seitenreload
+- konsistenter leerer Detailzustand
+- deaktivierter Beitreten-Button als Vorbereitung
+- Raumversorgung/Raumerstellung als Kontext
+- kritischer Hinweis: Tailwind muss resources/js/**/*.vue und resources/js/**/*.js scannen
+- Diagnose-Regel für den Fall, dass Vue-Klassen im DOM stehen, aber CSS nicht greift
+```
+
+Bei Bedarf:
+
+```text
+Als aktuelle Quelle anfordern, wenn am Lobby-Raumbrowser, an Vue-Islands, an Tailwind/Vite-Problemen oder an der Raumlisten-Interaktion gearbeitet wird.
+Beispiel: Bitte gib mir docs\lobby-room-browser-vue-state.md oder den relevanten Abschnitt daraus.
+```
+
+---
+
+### 4.11 Dependencies
 
 ```text
 laravel-app\node_modules\
