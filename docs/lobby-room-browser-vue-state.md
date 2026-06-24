@@ -358,20 +358,75 @@ und damit:
 
 ---
 
-## Offene Folgefragen
+## Geklärte Grundlagen und offene Umsetzungsfragen
 
-Vor der produktiven Aktivierung der Lobby-Teilnahme müssen mindestens diese Punkte geklärt oder umgesetzt werden:
+Einige Punkte zur späteren Lobby-Teilnahme sind fachlich bereits geklärt und sollen nicht mehr als vollständig offene Fragen behandelt werden.
 
-- Wann darf ein Benutzer einem Raum beitreten?
-- Wie wird Buy-in reserviert?
-- Was passiert bei zu wenig Spielgeld?
-- Wie wird verhindert, dass ein Benutzer mehrfach demselben Raum beitritt?
-- Wann startet ein Raum?
-- Wer erzeugt Ersatzräume?
-- Wie werden Raumzustände aktualisiert?
-- Wird Polling für die Lobby benötigt?
-- Wann kommt ein echter Chat?
-- Wann wird der Homeserver oder WebSocket als optionaler Realtime-Baustein eingebunden?
+Bereits geklärte Grundlagen:
+
+- Spieler erstellen normale Spielräume nicht selbst; Räume werden systemseitig bereitgestellt und gepflegt.
+- Normale Ersatzräume sollen im Tagesbetrieb nicht manuell durch Admins erzeugt werden müssen.
+- Admin- oder Eventräume sind ein Sonderfall und müssen später klar als besondere Räume gekennzeichnet werden, zum Beispiel WM-Eventräume, Geburtstagsräume oder andere Spezialaktionen.
+- Ein Benutzer darf einem Raum nur beitreten, wenn Spielberechtigung, Accountstatus, E-Mail-Bestätigung, vollständige UserDetails, Raumstatus, Kapazität und verfügbares Guthaben passen.
+- Sichtbar ist nicht gleich betretbar: Räume dürfen in der Lobby angezeigt werden, auch wenn ein Benutzer wegen fehlender St$ oder fehlender Spielberechtigung nicht beitreten kann.
+- Buy-ins werden vor Spielstart reserviert.
+- Bei Ausstieg oder Abbruch vor Spielstart wird die Reservierung vollständig freigegeben.
+- Bei Spielstart werden Buy-ins committed; erst dann entstehen Preispool und Rake.
+- Kein Spielstart bedeutet kein Rake.
+- Mehrere Vorstart-Anmeldungen in verschiedenen Räumen sind erlaubt, sofern das verfügbare Wallet für alle Reservierungen ausreicht.
+- Mehrere gleichzeitig laufende Spiele pro Spieler sind nicht erlaubt.
+- Das zuerst startende Spiel übernimmt die Führung für den Spieler.
+- Sobald ein Spiel die Führung übernommen hat, wird der Spieler aus allen anderen wartenden Räumen entfernt.
+- Die dort reservierten Buy-ins werden 1:1 ohne Abzüge freigegeben beziehungsweise erstattet.
+- Laravel bleibt autoritativ.
+- Polling bleibt mindestens Fallback.
+- HomeServer oder WebSocket sind nur optionale spätere Realtime-Beschleuniger und nicht Quelle der Wahrheit.
+
+Für Sit'n'Go-artige Räume ist eine kurze Startverzögerung vorgesehen:
+
+- Ein startbereiter Raum startet nicht sofort hart.
+- Stattdessen geht er für ungefähr 5 bis maximal 10 Sekunden in eine Startphase.
+- In dieser Startphase werden finale Prüfungen durchgeführt.
+- Geprüft wird insbesondere, ob Spieler parallel in weiteren Räumen angemeldet sind.
+- Wenn mehrere Räume mit überschneidenden Spielern fast gleichzeitig starten wollen, entscheidet der Startphasen-Zeitstempel.
+- Der zuerst in die Startphase gegangene Raum erhält die Führung.
+- Spätere konkurrierende Räume verlieren die betroffenen Spieler.
+- Wenn dadurch die Mindestspielerzahl unterschritten wird, wird der spätere Raum abgebrochen oder wieder in einen wartenden Zustand versetzt.
+- Betroffene Spieler erhalten einen Hinweis, warum der Raum nicht gestartet ist.
+- Reservierte Buy-ins aus nicht gestarteten oder abgebrochenen Räumen werden vollständig ohne Abzüge freigegeben.
+
+Für Raumlisten und Betrieb gelten folgende Zielrichtungen:
+
+- Beim Betrieb der App soll grundsätzlich eine Raumliste vorhanden sein.
+- Diese Raumliste wird fortlaufend aktualisiert.
+- Die konkrete technische Aktualisierung der Lobby ist noch zu definieren, voraussichtlich zunächst über Laravel und Polling beziehungsweise später optional beschleunigt über Realtime-Signale.
+- Ein regelmäßiger Wartungszeitraum ist denkbar, zum Beispiel einmal pro Woche.
+- Während eines Wartungszeitraums sollen keine neuen Spiele mehr starten.
+- Laufende Spiele sollen nicht hart abgebrochen werden, sondern zu Ende laufen.
+- Erst wenn keine Spiele mehr laufen, kann eine kurze echte Wartungspause aktiv werden.
+- Online-Benutzer können in dieser Phase temporär in einen Wartungsmodus geschickt beziehungsweise ausgesperrt werden.
+- Wartung soll möglichst automatisiert erfolgen.
+- Ein Admin soll nur bei schwerwiegenden Problemen eingreifen müssen.
+
+Der echte Chat ist bewusst nachgelagert. Er wird erst sinnvoll, wenn mindestens diese Voraussetzungen erfüllt sind:
+
+- die Lobby ist vollständig umgesetzt;
+- die Spiellogik ist implementiert;
+- mindestens Autopilot- beziehungsweise KI-Logik Stufe 1 ist implementiert.
+
+HomeServer oder WebSocket werden ebenfalls nicht sofort benötigt. Sie werden erst sinnvoll eingebunden, wenn eine Alpha-Version existiert, in der mindestens testweise 1-vs-1-Spiele möglich sind, idealerweise auch mit KI-Spieler.
+
+Noch technisch zu konkretisieren sind vor allem:
+
+- konkrete Umsetzung der Spielberechtigungsprüfung, zum Beispiel über PlayerEligibilityService, Policy oder Gate;
+- atomare Join- und Buy-in-Reservierungslogik;
+- Transaktionen, Locks und Idempotency-Regeln für parallele Raumstarts;
+- Datenbank-Constraints für Raumteilnahmen und Buy-in-Reservierungen;
+- konkrete Raumstatuswerte und Statusübergänge;
+- genaue Startbedingungen für Sit'n'Go- und Scheduled-Räume;
+- technische Raumversorgung und Ersatzraumerzeugung über Admin-Bereich oder Monitoring-System;
+- Lobby-Aktualisierung per Polling, Versionierung oder später optional WebSocket;
+- UI-Hinweise, warum ein sichtbarer Raum nicht betretbar ist oder warum ein Start abgebrochen wurde.
 
 ---
 
