@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 const props = defineProps({
     rooms: {
@@ -44,6 +44,8 @@ const filterState = reactive({
     buy_in: props.filters?.buy_in || '',
     players: props.filters?.players || '',
 });
+
+const selectedRoomCodeState = ref(props.selectedRoomCode || props.selectedRoom?.publicCode || null);
 
 const statusOptions = [
     { value: '', label: 'Alle' },
@@ -100,15 +102,15 @@ function lobbyUrl(overrides = {}) {
 const applyFiltersUrl = computed(() => lobbyUrl());
 const resetFiltersUrl = computed(() => '/lobby');
 
+const roomList = computed(() => props.rooms || []);
+
 const selectedRoomDetails = computed(() => {
-    if (!props.selectedRoomVisible || !props.selectedRoom) {
+    if (!selectedRoomCodeState.value) {
         return null;
     }
 
-    return props.selectedRoom;
+    return roomList.value.find((room) => room?.publicCode === selectedRoomCodeState.value) || null;
 });
-
-const roomList = computed(() => props.rooms || []);
 
 const detailTitle = computed(() => selectedRoomDetails.value?.name || 'Kein Raum ausgewählt');
 const detailCode = computed(() => selectedRoomDetails.value?.publicCode || '-');
@@ -120,7 +122,15 @@ const detailPrizePool = computed(() => selectedRoomDetails.value?.prizePoolDispl
 const detailFee = computed(() => selectedRoomDetails.value?.feeDisplay || 'Raum auswählen');
 
 function roomIsSelected(room) {
-    return Boolean(props.selectedRoomCode) && room?.publicCode === props.selectedRoomCode;
+    return Boolean(selectedRoomCodeState.value) && room?.publicCode === selectedRoomCodeState.value;
+}
+
+function toggleRoomSelection(room) {
+    if (!room?.publicCode) {
+        return;
+    }
+
+    selectedRoomCodeState.value = roomIsSelected(room) ? null : room.publicCode;
 }
 
 function roomUrl(room) {
@@ -140,8 +150,8 @@ function rowAriaLabel(room) {
 
 <template>
     <section class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden" aria-label="Lobby-Raumbrowser">
-        <section class="grid h-[250px] shrink-0 items-stretch gap-3 overflow-hidden xl:grid-cols-12">
-            <article class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-3 shadow-2xl shadow-black/20 xl:col-span-5">
+        <section class="grid h-[250px] shrink-0 items-stretch gap-3 overflow-hidden lg:grid-cols-2">
+            <article class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-3 shadow-2xl shadow-black/20">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
@@ -231,7 +241,7 @@ function rowAriaLabel(room) {
                 </div>
             </article>
 
-            <aside class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 xl:col-span-7">
+            <aside class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20">
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
@@ -246,26 +256,12 @@ function rowAriaLabel(room) {
                         </p>
                     </div>
 
-                    <span
-                        class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                        :class="selectedRoomDetails
-                            ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-                            : 'border-slate-700 bg-slate-950/70 text-slate-500'"
-                    >
+                    <span class="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">
                         vorbereitet
                     </span>
                 </div>
 
-                <div
-                    class="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-2xl border p-3"
-                    :class="selectedRoomDetails
-                        ? 'border-amber-400/30 bg-slate-950/60'
-                        : 'border-dashed border-slate-700 bg-slate-950/40'"
-                >
-                    <div v-if="!selectedRoomDetails" class="mb-3 text-sm leading-5 text-slate-400">
-                        Klicke auf einen Raum in der Raumliste, um hier Details, Teilnahmebedingungen und Statusinformationen anzuzeigen.
-                    </div>
-
+                <div class="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-950/60 p-3">
                     <div class="min-h-0 flex-1">
                         <dl class="grid h-full grid-cols-5 gap-2 text-sm">
                             <div class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2">
@@ -333,8 +329,8 @@ function rowAriaLabel(room) {
             </aside>
         </section>
 
-        <section class="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-12">
-            <article class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 xl:col-span-9">
+        <section class="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
+            <article class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-4">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
@@ -385,7 +381,7 @@ function rowAriaLabel(room) {
                                 >
                                     <td class="px-4 py-2">
                                         <a
-                                            :href="roomUrl(room)"
+                                            :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)"
                                             class="flex min-w-0 items-baseline gap-2"
                                             :aria-label="rowAriaLabel(room)"
                                         >
@@ -395,25 +391,25 @@ function rowAriaLabel(room) {
                                     </td>
 
                                     <td class="px-4 py-2 text-right font-bold text-slate-200">
-                                        <a :href="roomUrl(room)" class="block" :aria-label="rowAriaLabel(room)">
+                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
                                             {{ room.buyInDisplay }}
                                         </a>
                                     </td>
 
                                     <td class="px-4 py-2 text-right font-semibold text-slate-300">
-                                        <a :href="roomUrl(room)" class="block" :aria-label="rowAriaLabel(room)">
+                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
                                             {{ room.playersDisplay }}
                                         </a>
                                     </td>
 
                                     <td class="px-4 py-2 text-slate-300">
-                                        <a :href="roomUrl(room)" class="block" :aria-label="rowAriaLabel(room)">
+                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
                                             {{ room.startDisplay }}
                                         </a>
                                     </td>
 
                                     <td class="px-4 py-2">
-                                        <a :href="roomUrl(room)" class="block" :aria-label="rowAriaLabel(room)">
+                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
                                             <span
                                                 class="inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-black uppercase tracking-wide"
                                                 :class="room.statusTone === 'success'
@@ -427,7 +423,7 @@ function rowAriaLabel(room) {
 
                                     <td class="px-4 py-2 text-right">
                                         <a
-                                            :href="roomUrl(room)"
+                                            :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)"
                                             class="font-black"
                                             :class="roomIsSelected(room) ? 'text-amber-300' : 'text-slate-500'"
                                             :aria-label="rowAriaLabel(room)"
@@ -442,7 +438,7 @@ function rowAriaLabel(room) {
                 </div>
             </article>
 
-            <aside class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 xl:col-span-3">
+            <aside class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-1">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
                         Globaler Chat
@@ -465,12 +461,3 @@ function rowAriaLabel(room) {
         </section>
     </section>
 </template>
-
-
-
-
-
-
-
-
-
