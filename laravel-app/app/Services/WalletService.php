@@ -71,6 +71,65 @@ class WalletService
         });
     }
 
+    public function adjustPlayMoneyBalanceTo(
+        User $user,
+        int $targetBalanceUnits,
+        string $idempotencyKey,
+        ?string $description = null,
+        array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): ?LedgerEntry {
+        $this->ensureNonNegativeAmount($targetBalanceUnits);
+        $this->ensureIdempotencyKey($idempotencyKey);
+
+        return DB::transaction(function () use ($user, $targetBalanceUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId): ?LedgerEntry {
+            $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
+
+            if ($existingEntry !== null) {
+                return $existingEntry;
+            }
+
+            $wallet = $this->getOrCreatePlayMoneyWallet($user);
+            $wallet = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+            if ($targetBalanceUnits < $wallet->reserved_units) {
+                throw new RuntimeException('Target balance cannot be below reserved wallet units.');
+            }
+
+            if ($wallet->balance_units === $targetBalanceUnits) {
+                return null;
+            }
+
+            $currentBalanceUnits = $wallet->balance_units;
+            $direction = $targetBalanceUnits > $currentBalanceUnits
+                ? LedgerEntry::DIRECTION_CREDIT
+                : LedgerEntry::DIRECTION_DEBIT;
+
+            $amountUnits = abs($targetBalanceUnits - $currentBalanceUnits);
+
+            $wallet->balance_units = $targetBalanceUnits;
+            $wallet->save();
+
+            return LedgerEntry::create([
+                'wallet_id' => $wallet->id,
+                'user_id' => $user->id,
+                'asset_type' => Wallet::ASSET_PLAY_MONEY,
+                'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+                'direction' => $direction,
+                'amount_units' => $amountUnits,
+                'balance_after_units' => $wallet->balance_units,
+                'reserved_after_units' => $wallet->reserved_units,
+                'entry_type' => LedgerEntry::TYPE_ADJUSTMENT,
+                'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'description' => $description,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
+
     public function reserveUnits(
         Wallet $wallet,
         int $amountUnits,
@@ -169,6 +228,13 @@ class WalletService
     {
         if ($amountUnits <= 0) {
             throw new InvalidArgumentException('Amount units must be positive.');
+        }
+    }
+
+    private function ensureNonNegativeAmount(int $amountUnits): void
+    {
+        if ($amountUnits < 0) {
+            throw new InvalidArgumentException('Amount units must not be negative.');
         }
     }
 

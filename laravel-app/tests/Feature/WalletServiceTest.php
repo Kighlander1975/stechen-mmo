@@ -248,6 +248,138 @@ class WalletServiceTest extends TestCase
         $service->releaseReservedUnits($grantEntry->wallet, 1, 'insufficient-release-key');
     }
 
+    public function test_it_adjusts_play_money_balance_upward(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $service->grantPlayMoney($user, 100, 'adjust-up-grant-'.$user->id);
+
+        $entry = $service->adjustPlayMoneyBalanceTo(
+            user: $user,
+            targetBalanceUnits: 1_500,
+            idempotencyKey: 'adjust-up-'.$user->id,
+            description: 'Adjust upward',
+            metadata: [
+                'source' => 'adjustment-test',
+            ],
+        );
+
+        $wallet = $entry->wallet->fresh();
+
+        $this->assertSame(1_500, $wallet->balance_units);
+        $this->assertSame(0, $wallet->reserved_units);
+        $this->assertSame(LedgerEntry::TYPE_ADJUSTMENT, $entry->entry_type);
+        $this->assertSame(LedgerEntry::DIRECTION_CREDIT, $entry->direction);
+        $this->assertSame(1_400, $entry->amount_units);
+        $this->assertSame(1_500, $entry->balance_after_units);
+        $this->assertSame(0, $entry->reserved_after_units);
+        $this->assertSame('adjustment-test', $entry->metadata['source']);
+    }
+
+    public function test_it_adjusts_play_money_balance_downward(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $service->grantPlayMoney($user, 1_500, 'adjust-down-grant-'.$user->id);
+
+        $entry = $service->adjustPlayMoneyBalanceTo(
+            user: $user,
+            targetBalanceUnits: 250,
+            idempotencyKey: 'adjust-down-'.$user->id,
+            description: 'Adjust downward',
+        );
+
+        $wallet = $entry->wallet->fresh();
+
+        $this->assertSame(250, $wallet->balance_units);
+        $this->assertSame(0, $wallet->reserved_units);
+        $this->assertSame(LedgerEntry::TYPE_ADJUSTMENT, $entry->entry_type);
+        $this->assertSame(LedgerEntry::DIRECTION_DEBIT, $entry->direction);
+        $this->assertSame(1_250, $entry->amount_units);
+        $this->assertSame(250, $entry->balance_after_units);
+        $this->assertSame(0, $entry->reserved_after_units);
+    }
+
+    public function test_adjust_play_money_balance_to_returns_null_when_balance_already_matches(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $service->grantPlayMoney($user, 500, 'adjust-same-grant-'.$user->id);
+
+        $entry = $service->adjustPlayMoneyBalanceTo($user, 500, 'adjust-same-'.$user->id);
+
+        $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
+
+        $this->assertNull($entry);
+        $this->assertSame(500, $wallet->balance_units);
+        $this->assertSame(1, LedgerEntry::count());
+    }
+
+    public function test_adjust_play_money_balance_to_is_idempotent(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $service->grantPlayMoney($user, 100, 'adjust-idempotent-grant-'.$user->id);
+
+        $firstEntry = $service->adjustPlayMoneyBalanceTo($user, 1_000, 'same-adjust-key');
+        $secondEntry = $service->adjustPlayMoneyBalanceTo($user, 999, 'same-adjust-key');
+
+        $wallet = $firstEntry->wallet->fresh();
+
+        $this->assertTrue($firstEntry->is($secondEntry));
+        $this->assertSame(1_000, $wallet->balance_units);
+        $this->assertSame(2, LedgerEntry::count());
+    }
+
+    public function test_adjust_play_money_balance_to_can_store_ledger_reference(): void
+    {
+        $user = User::factory()->create();
+
+        $entry = app(WalletService::class)->adjustPlayMoneyBalanceTo(
+            user: $user,
+            targetBalanceUnits: 750,
+            idempotencyKey: 'adjust-reference-'.$user->id,
+            description: 'Adjust with reference',
+            metadata: [
+                'source' => 'reference-adjustment-test',
+            ],
+            referenceType: GameRoom::class,
+            referenceId: 987,
+        );
+
+        $this->assertSame(GameRoom::class, $entry->reference_type);
+        $this->assertSame(987, $entry->reference_id);
+        $this->assertSame('reference-adjustment-test', $entry->metadata['source']);
+    }
+
+    public function test_adjust_play_money_balance_to_rejects_negative_target(): void
+    {
+        $user = User::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Amount units must not be negative.');
+
+        app(WalletService::class)->adjustPlayMoneyBalanceTo($user, -1, 'negative-adjust-'.$user->id);
+    }
+
+    public function test_adjust_play_money_balance_to_rejects_target_below_reserved_units(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'adjust-reserved-grant-'.$user->id);
+        $service->reserveUnits($grantEntry->wallet, 400, 'adjust-reserved-reserve-'.$user->id);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Target balance cannot be below reserved wallet units.');
+
+        $service->adjustPlayMoneyBalanceTo($user, 399, 'adjust-below-reserved-'.$user->id);
+    }
+
     public function test_it_rejects_non_positive_amounts(): void
     {
         $user = User::factory()->create();
