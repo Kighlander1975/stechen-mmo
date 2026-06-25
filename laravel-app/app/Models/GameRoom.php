@@ -34,6 +34,7 @@ class GameRoom extends Model
         'scheduled_start_at',
         'rake_basis_points',
         'created_by_user_id',
+        'is_test',
     ];
 
     protected function casts(): array
@@ -44,6 +45,7 @@ class GameRoom extends Model
             'max_players' => 'integer',
             'scheduled_start_at' => 'datetime',
             'rake_basis_points' => 'integer',
+            'is_test' => 'boolean',
         ];
     }
 

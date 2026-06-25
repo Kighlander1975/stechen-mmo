@@ -45,6 +45,53 @@ class GameRoomLobbyTest extends TestCase
         $this->assertTrue($room->creator->is($creator));
     }
 
+    public function test_game_room_is_not_marked_as_test_room_by_default(): void
+    {
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-TEST-FALSE',
+            'name' => 'Normal Room',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+        ]);
+
+        $room = $room->fresh();
+
+        $this->assertFalse($room->is_test);
+        $this->assertDatabaseHas('game_rooms', [
+            'id' => $room->id,
+            'is_test' => false,
+        ]);
+    }
+
+    public function test_game_room_can_be_marked_as_test_room(): void
+    {
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-TEST-TRUE',
+            'name' => '[TEST] Browser Harness Room',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 1_000,
+            'min_players' => 2,
+            'max_players' => 4,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => true,
+        ]);
+
+        $room = $room->fresh();
+
+        $this->assertTrue($room->is_test);
+        $this->assertDatabaseHas('game_rooms', [
+            'id' => $room->id,
+            'is_test' => true,
+        ]);
+    }
+
     public function test_user_has_created_game_rooms_relation(): void
     {
         $creator = User::factory()->create();
