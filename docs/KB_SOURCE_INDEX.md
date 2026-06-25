@@ -83,6 +83,7 @@ docs\rollen-und-berechtigungen.md
 docs\Stechen-Serverkonzept.md
 docs\tech-stack.md
 docs\lobby-field-prototype.md
+docs\admin-dashboard-refactor-notes.md
 ```
 
 Bei Fragen zu älteren Phasen, MVP-Grundlagen, Rollen-/Berechtigungsdetails, Serverkonzepten oder dem Spielfeld-Prototyp soll der KI-Assistent diese Dateien gezielt anfordern, statt ihre Inhalte als aktuelle Haupt-KB vorauszusetzen.
@@ -558,7 +559,45 @@ Beispiel: Bitte gib mir docs\lobby-room-browser-vue-state.md oder den relevanten
 
 ---
 
-### 4.11 Dependencies
+### 4.11 Admin-Dashboard-Refactor Kurznotiz
+
+```text
+docs\admin-dashboard-refactor-notes.md
+```
+
+Status:
+
+```text
+Nicht in die Haupt-KB aufnehmen.
+Bei Bedarf gezielt anfordern.
+```
+
+Grund:
+
+```text
+Kurze Umsetzungsnotiz zum Admin-Dashboard-Refactor und zur projektweiten Header-Breitenkorrektur.
+Nützlich für spätere Admin-Dashboard-Erweiterungen, aber zu spezifisch für die aktive Haupt-KB.
+```
+
+Nützliche Inhalte:
+
+```text
+- Admin-Dashboard wurde von routes/web.php-Closure auf AdminDashboardController umgestellt
+- Dashboard-View wurde in Section-Views aufgeteilt
+- Auswirkungen auf zukünftige Admin-Erweiterungen
+- Vue-SiteHeader wurde an die Content-Breite max-w-[1600px] angepasst
+```
+
+Bei Bedarf:
+
+```text
+Gezielt anfordern, wenn am Admin-Dashboard, an Dashboard-Sections oder an der projektweiten SiteHeader-Breite gearbeitet wird.
+Beispiel: Bitte gib mir docs\admin-dashboard-refactor-notes.md oder den relevanten Abschnitt daraus.
+```
+
+---
+
+### 4.12 Dependencies
 
 ```text
 laravel-app\node_modules\
