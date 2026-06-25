@@ -49,6 +49,11 @@ class AdminRegistrationBonusBackfillTest extends TestCase
             'email' => 'already-granted@example.test',
         ]);
 
+        $phase3TestUser = User::factory()->create([
+            'name' => 'Phase 3 Test User',
+            'email' => 'phase3.player1@phase3-test.stechen.local',
+        ]);
+
         app(RewardService::class)->grantRegistrationBonus($alreadyGrantedUser);
 
         $response = $this->actingAs($admin)->get('/admin/rewards/registration-bonus-backfill');
@@ -64,7 +69,9 @@ class AdminRegistrationBonusBackfillTest extends TestCase
             ->assertSee('Bereit')
             ->assertSee('E-Mail offen')
             ->assertDontSee('Already Granted User')
-            ->assertDontSee('already-granted@example.test');
+            ->assertDontSee('already-granted@example.test')
+            ->assertDontSee('Phase 3 Test User')
+            ->assertDontSee('phase3.player1@phase3-test.stechen.local');
 
         $this->assertDatabaseHas('reward_claims', [
             'user_id' => $alreadyGrantedUser->id,
@@ -78,6 +85,11 @@ class AdminRegistrationBonusBackfillTest extends TestCase
 
         $this->assertDatabaseMissing('reward_claims', [
             'user_id' => $unverifiedOpenUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $phase3TestUser->id,
             'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
         ]);
     }
@@ -161,6 +173,29 @@ class AdminRegistrationBonusBackfillTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_grant_registration_bonus_to_phase3_test_user(): void
+    {
+        $admin = User::factory()->create([
+            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
+        ]);
+
+        $targetUser = User::factory()->create([
+            'name' => 'Single Phase 3 Test User',
+            'email' => 'phase3.player2@phase3-test.stechen.local',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.rewards.registration-bonus-backfill.user', $targetUser));
+
+        $response
+            ->assertRedirect(route('admin.rewards.registration-bonus-backfill.index'))
+            ->assertSessionHas('warning', 'Phase-3-Testuser sind vom Startguthaben-Backfill ausgeschlossen.');
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $targetUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+    }
+
     public function test_single_registration_bonus_backfill_action_is_idempotent(): void
     {
         $admin = User::factory()->create([
@@ -224,6 +259,11 @@ class AdminRegistrationBonusBackfillTest extends TestCase
         $alreadyGrantedUser = User::factory()->create([
             'name' => 'Bulk Already Granted User',
             'email' => 'bulk-already-granted@example.test',
+        ]);
+
+        $phase3TestUser = User::factory()->create([
+            'name' => 'Bulk Phase 3 Test User',
+            'email' => 'phase3.player3@phase3-test.stechen.local',
         ]);
 
         app(RewardService::class)->grantRegistrationBonus($alreadyGrantedUser);
@@ -292,5 +332,6 @@ class AdminRegistrationBonusBackfillTest extends TestCase
     }
 
 }
+
 
 

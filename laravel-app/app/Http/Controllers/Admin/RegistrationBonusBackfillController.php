@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\RewardClaim;
 use App\Models\User;
+use App\Services\Phase3\Phase3LocalTestHarnessService;
 use App\Services\RegistrationBonusBackfillService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,9 +13,10 @@ use Illuminate\Http\RedirectResponse;
 
 class RegistrationBonusBackfillController extends Controller
 {
-    public function index(): View
+    public function index(Phase3LocalTestHarnessService $phase3LocalTestHarness): View
     {
         $openUsers = User::query()
+            ->whereRaw('lower(email) not like ?', ['%@'.$phase3LocalTestHarness->testUserEmailDomain()])
             ->whereDoesntHave('rewardClaims', function (Builder $query): void {
                 $query->where('reward_type', RewardClaim::TYPE_REGISTRATION_BONUS);
             })
@@ -64,6 +66,7 @@ class RegistrationBonusBackfillController extends Controller
             'granted' => 'status',
             'already_granted' => 'status',
             'email_unverified' => 'warning',
+            'excluded' => 'warning',
             default => 'error',
         };
 

@@ -95,6 +95,50 @@ class RegistrationBonusBackfillCommandTest extends TestCase
         ]);
     }
 
+    public function test_backfill_skips_phase3_test_users(): void
+    {
+        $normalUser = User::factory()->create([
+            'email' => 'normal-user@example.test',
+        ]);
+
+        $phase3TestUser = User::factory()->create([
+            'email' => 'phase3.player4@phase3-test.stechen.local',
+        ]);
+
+        $this->artisan('rewards:backfill-registration-bonus')
+            ->assertExitCode(0);
+
+        $this->assertSame(1, Wallet::count());
+        $this->assertSame(1, LedgerEntry::count());
+        $this->assertSame(1, RewardClaim::count());
+
+        $this->assertDatabaseHas('reward_claims', [
+            'user_id' => $normalUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+            'status' => RewardClaim::STATUS_GRANTED,
+        ]);
+
+        $this->assertDatabaseMissing('reward_claims', [
+            'user_id' => $phase3TestUser->id,
+            'reward_type' => RewardClaim::TYPE_REGISTRATION_BONUS,
+        ]);
+    }
+
+    public function test_backfill_restricted_to_phase3_test_user_does_not_grant_bonus(): void
+    {
+        $phase3TestUser = User::factory()->create([
+            'email' => 'phase3.empty@phase3-test.stechen.local',
+        ]);
+
+        $this->artisan('rewards:backfill-registration-bonus', [
+            '--user-id' => $phase3TestUser->id,
+        ])->assertExitCode(0);
+
+        $this->assertSame(0, Wallet::count());
+        $this->assertSame(0, LedgerEntry::count());
+        $this->assertSame(0, RewardClaim::count());
+    }
+
     public function test_backfill_can_be_restricted_to_single_user(): void
     {
         $targetUser = User::factory()->create();
