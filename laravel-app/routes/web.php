@@ -53,6 +53,9 @@ Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('a
     Route::post('/phase-3/local-test-harness/disable', [Phase3LocalTestHarnessController::class, 'disable'])
         ->name('phase3-local-test-harness.disable');
 
+    Route::post('/phase-3/local-test-harness/test-users/prepare', [Phase3LocalTestHarnessController::class, 'prepareTestUsers'])
+        ->name('phase3-local-test-harness.prepare-test-users');
+
     Route::get('/rewards/registration-bonus-backfill', [RegistrationBonusBackfillController::class, 'index'])
         ->name('rewards.registration-bonus-backfill.index');
 
