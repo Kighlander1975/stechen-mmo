@@ -9,44 +9,29 @@ use Illuminate\Http\RedirectResponse;
 
 class Phase3LocalTestHarnessController extends Controller
 {
-    public function enable(Phase3LocalTestHarnessService $phase3LocalTestHarness): RedirectResponse
-    {
+    public function enable(
+        Phase3LocalTestHarnessService $phase3LocalTestHarness,
+        Phase3LocalTestDataService $phase3LocalTestData,
+    ): RedirectResponse {
         if (! $phase3LocalTestHarness->isAvailableInCurrentEnvironment()) {
             return redirect()
                 ->route('admin.dashboard')
                 ->with('status', 'Der lokale Phase-3-Browser-Testmodus kann nur in local/testing aktiviert werden.');
         }
 
-        $phase3LocalTestHarness->enable();
+        $result = $phase3LocalTestData->activate();
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert.');
+            ->with('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert. '.count($result['users']).' Testuser und '.count($result['rooms']).' Testräume wurden frisch vorbereitet. Passwort: password');
     }
 
-    public function disable(Phase3LocalTestHarnessService $phase3LocalTestHarness): RedirectResponse
+    public function disable(Phase3LocalTestDataService $phase3LocalTestData): RedirectResponse
     {
-        $phase3LocalTestHarness->disable();
+        $cleanup = $phase3LocalTestData->deactivate();
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert.');
-    }
-
-    public function prepareTestUsers(
-        Phase3LocalTestHarnessService $phase3LocalTestHarness,
-        Phase3LocalTestDataService $phase3LocalTestData,
-    ): RedirectResponse {
-        if (! $phase3LocalTestHarness->isEnabled()) {
-            return redirect()
-                ->route('admin.dashboard')
-                ->with('status', 'Der lokale Phase-3-Browser-Testmodus muss aktiv sein, bevor Testuser vorbereitet werden.');
-        }
-
-        $preparedUsers = $phase3LocalTestData->prepareUsers();
-
-        return redirect()
-            ->route('admin.dashboard')
-            ->with('status', count($preparedUsers).' lokale Phase-3-Testuser wurden vorbereitet. Passwort: password');
+            ->with('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert. Testdaten wurden bereinigt: '.$cleanup['users'].' User, '.$cleanup['wallets'].' Wallets, '.$cleanup['ledger_entries'].' Ledger-Einträge, '.$cleanup['rooms'].' Räume.');
     }
 }

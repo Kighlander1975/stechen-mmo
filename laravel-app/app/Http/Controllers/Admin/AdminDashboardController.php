@@ -57,7 +57,6 @@ class AdminDashboardController extends Controller
                 'testUserEmailDomain' => $phase3LocalTestHarness->testUserEmailDomain(),
                 'enableUrl' => route('admin.phase3-local-test-harness.enable'),
                 'disableUrl' => route('admin.phase3-local-test-harness.disable'),
-                'prepareTestUsersUrl' => route('admin.phase3-local-test-harness.prepare-test-users'),
             ],
         ]);
     }

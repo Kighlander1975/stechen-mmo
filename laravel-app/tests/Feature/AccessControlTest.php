@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\GameRoom;
+use App\Models\LedgerEntry;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Services\Phase3\Phase3LocalTestDataService;
 use App\Services\RewardService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -169,13 +170,11 @@ class AccessControlTest extends TestCase
             ->assertSee(route('admin.game-rooms.supply-test-mode.enable', absolute: false))
             ->assertSee(route('admin.game-rooms.supply-test-mode.disable', absolute: false))
             ->assertSee('Lokaler Phase-3-Browser-Testmodus')
-            ->assertSee('Raum betreten')
-            ->assertSee('Buy-in reservieren')
+            ->assertSee('Testusern, Wallets und Testräumen')
             ->assertSee('phase3-test.stechen.local')
             ->assertSee(route('admin.phase3-local-test-harness.enable', absolute: false))
             ->assertSee(route('admin.phase3-local-test-harness.disable', absolute: false))
-            ->assertSee('Testuser vorbereiten')
-            ->assertSee(route('admin.phase3-local-test-harness.prepare-test-users', absolute: false))
+            ->assertDontSee('Testuser vorbereiten')
             ->assertSee('Benutzer')
             ->assertSee('Spielbetrieb')
             ->assertSee('System')
@@ -186,7 +185,7 @@ class AccessControlTest extends TestCase
             ->assertSee(route('dashboard', absolute: false));
     }
 
-    public function test_admin_can_enable_phase3_local_test_harness(): void
+    public function test_admin_can_enable_phase3_local_test_harness_and_prepare_fresh_data(): void
     {
         $user = User::factory()->create([
             'permissions' => [User::PERMISSION_ADMIN_ACCESS],
@@ -198,22 +197,45 @@ class AccessControlTest extends TestCase
 
         $response
             ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert.');
+            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert. 6 Testuser und 4 Testräume wurden frisch vorbereitet. Passwort: password');
 
         $this->assertTrue(SystemSetting::phase3LocalTestHarnessIsEnabled());
-        $this->assertDatabaseHas('system_settings', [
-            'key' => SystemSetting::KEY_PHASE3_LOCAL_TEST_HARNESS_ENABLED,
-            'value' => '1',
+        $this->assertDatabaseCount('users', 7);
+        $this->assertDatabaseCount('wallets', 6);
+        $this->assertDatabaseCount('game_rooms', 4);
+        $this->assertSame(5, LedgerEntry::query()->count());
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'phase3.player1@phase3-test.stechen.local',
+        ]);
+
+        $this->assertDatabaseHas('wallets', [
+            'balance_units' => 10_000,
+            'reserved_units' => 0,
+        ]);
+
+        $this->assertDatabaseHas('game_rooms', [
+            'public_code' => 'P3TEST-HU-10',
+            'status' => GameRoom::STATUS_OPEN,
+            'is_test' => true,
         ]);
     }
 
-    public function test_admin_can_disable_phase3_local_test_harness(): void
+    public function test_admin_can_disable_phase3_local_test_harness_and_cleanup_test_data(): void
     {
         $user = User::factory()->create([
             'permissions' => [User::PERMISSION_ADMIN_ACCESS],
         ]);
 
-        SystemSetting::setValue(SystemSetting::KEY_PHASE3_LOCAL_TEST_HARNESS_ENABLED, '1');
+        $this
+            ->actingAs($user)
+            ->post(route('admin.phase3-local-test-harness.enable'));
+
+        $this->assertTrue(SystemSetting::phase3LocalTestHarnessIsEnabled());
+        $this->assertSame(6, User::query()->where('email', 'like', '%@phase3-test.stechen.local')->count());
+        $this->assertSame(6, Wallet::query()->count());
+        $this->assertSame(5, LedgerEntry::query()->count());
+        $this->assertSame(4, GameRoom::query()->where('is_test', true)->count());
 
         $response = $this
             ->actingAs($user)
@@ -221,13 +243,13 @@ class AccessControlTest extends TestCase
 
         $response
             ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert.');
+            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert. Testdaten wurden bereinigt: 6 User, 6 Wallets, 5 Ledger-Einträge, 4 Räume.');
 
         $this->assertFalse(SystemSetting::phase3LocalTestHarnessIsEnabled());
-        $this->assertDatabaseHas('system_settings', [
-            'key' => SystemSetting::KEY_PHASE3_LOCAL_TEST_HARNESS_ENABLED,
-            'value' => '0',
-        ]);
+        $this->assertSame(0, User::query()->where('email', 'like', '%@phase3-test.stechen.local')->count());
+        $this->assertSame(0, Wallet::query()->count());
+        $this->assertSame(0, LedgerEntry::query()->count());
+        $this->assertSame(0, GameRoom::query()->where('is_test', true)->count());
     }
 
     public function test_non_admin_cannot_toggle_phase3_local_test_harness(): void
@@ -246,58 +268,6 @@ class AccessControlTest extends TestCase
             ->post(route('admin.phase3-local-test-harness.disable'))
             ->assertForbidden();
 
-        $this
-            ->actingAs($user)
-            ->post(route('admin.phase3-local-test-harness.prepare-test-users'))
-            ->assertForbidden();
-
         $this->assertFalse(SystemSetting::phase3LocalTestHarnessIsEnabled());
     }
-
-    public function test_admin_can_prepare_phase3_local_test_users_when_harness_is_enabled(): void
-    {
-        $user = User::factory()->create([
-            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
-        ]);
-
-        SystemSetting::setValue(SystemSetting::KEY_PHASE3_LOCAL_TEST_HARNESS_ENABLED, '1');
-
-        $response = $this
-            ->actingAs($user)
-            ->post(route('admin.phase3-local-test-harness.prepare-test-users'));
-
-        $response
-            ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', '6 lokale Phase-3-Testuser wurden vorbereitet. Passwort: password');
-
-        $this->assertDatabaseHas('users', [
-            'email' => 'phase3.player1@phase3-test.stechen.local',
-        ]);
-
-        $this->assertDatabaseHas('wallets', [
-            'balance_units' => 10_000,
-            'reserved_units' => 0,
-        ]);
-    }
-
-    public function test_admin_cannot_prepare_phase3_local_test_users_when_harness_is_disabled(): void
-    {
-        $user = User::factory()->create([
-            'permissions' => [User::PERMISSION_ADMIN_ACCESS],
-        ]);
-
-        $response = $this
-            ->actingAs($user)
-            ->post(route('admin.phase3-local-test-harness.prepare-test-users'));
-
-        $response
-            ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', 'Der lokale Phase-3-Browser-Testmodus muss aktiv sein, bevor Testuser vorbereitet werden.');
-
-        $this->assertDatabaseMissing('users', [
-            'email' => 'phase3.player1@phase3-test.stechen.local',
-        ]);
-    }
 }
-
-

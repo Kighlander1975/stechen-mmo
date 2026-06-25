@@ -15,8 +15,8 @@
             </h2>
 
             <p class="mt-3 max-w-3xl text-sm leading-6 text-violet-100/80">
-                Aktiviert eine lokale Browser-Testumgebung für die Entwicklung der echten Live-Funktionen:
-                Raum betreten, Buy-in reservieren, Raum verlassen, Startphase, Raumstart sowie Cancel und Reset von Testzuständen.
+                Aktiviert eine lokale Browser-Testumgebung mit frisch erzeugten Testusern, Wallets und Testräumen.
+                Beim Deaktivieren werden diese lokalen Testdaten wieder bereinigt, damit der nächste Aktivierungszyklus sauber startet.
                 In Production bleibt dieser Modus wirkungslos.
             </p>
 
@@ -66,18 +66,6 @@
                     class="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-950/70 px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-red-400/50 hover:text-red-300"
                 >
                     Deaktivieren
-                </button>
-            </form>
-
-            <form method="POST" action="{{ $phase3LocalTestHarness['prepareTestUsersUrl'] }}">
-                @csrf
-
-                <button
-                    type="submit"
-                    class="inline-flex items-center justify-center rounded-lg border border-emerald-300/40 bg-emerald-400 px-4 py-2 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                    @disabled(! $phase3HarnessAvailable || ! $phase3HarnessEnabled)
-                >
-                    Testuser vorbereiten
                 </button>
             </form>
         </div>
