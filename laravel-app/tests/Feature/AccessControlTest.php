@@ -143,5 +143,35 @@ class AccessControlTest extends TestCase
             ->assertSee('Admin-Dashboard')
             ->assertSee('admin.access');
     }
+
+    public function test_admin_dashboard_contains_current_dashboard_sections_and_actions(): void
+    {
+        $user = User::factory()->create([
+            'permissions' => [
+                User::PERMISSION_ADMIN_ACCESS,
+                User::PERMISSION_ADMIN_GAME,
+                User::PERMISSION_PLAY_GAME,
+            ],
+        ]);
+
+        $response = $this->actingAs($user)->get('/admin');
+
+        $response
+            ->assertOk()
+            ->assertSee('Geschützter Administrationsbereich')
+            ->assertSee('Startguthaben-Backfill')
+            ->assertSee(route('admin.rewards.registration-bonus-backfill.index', absolute: false))
+            ->assertSee('Room-Supply-Testmodus')
+            ->assertSee(route('admin.game-rooms.supply-test-mode.enable', absolute: false))
+            ->assertSee(route('admin.game-rooms.supply-test-mode.disable', absolute: false))
+            ->assertSee('Benutzer')
+            ->assertSee('Spielbetrieb')
+            ->assertSee('System')
+            ->assertSee('Aktueller Account')
+            ->assertSee($user->email)
+            ->assertSee('admin.game')
+            ->assertSee('play.game')
+            ->assertSee(route('dashboard', absolute: false));
+    }
 }
 
