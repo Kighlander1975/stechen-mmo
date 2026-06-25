@@ -15,6 +15,10 @@
             'roomSupplyTestMode' => $roomSupplyTestMode,
         ])
 
+        @include('admin.dashboard.sections.phase3-local-test-harness', [
+            'phase3LocalTestHarness' => $phase3LocalTestHarness,
+        ])
+
         @include('admin.dashboard.sections.overview-cards')
 
         @include('admin.dashboard.sections.current-account', [

@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemSetting;
+use App\Services\Phase3\Phase3LocalTestHarnessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, Phase3LocalTestHarnessService $phase3LocalTestHarness): View
     {
         $user = $request->user();
 
@@ -47,6 +48,15 @@ class AdminDashboardController extends Controller
                     && $roomSupplyTestModeExpiry->isFuture(),
                 'enableUrl' => route('admin.game-rooms.supply-test-mode.enable'),
                 'disableUrl' => route('admin.game-rooms.supply-test-mode.disable'),
+            ],
+
+            'phase3LocalTestHarness' => [
+                'environment' => app()->environment(),
+                'available' => $phase3LocalTestHarness->isAvailableInCurrentEnvironment(),
+                'enabled' => $phase3LocalTestHarness->isEnabled(),
+                'testUserEmailDomain' => $phase3LocalTestHarness->testUserEmailDomain(),
+                'enableUrl' => route('admin.phase3-local-test-harness.enable'),
+                'disableUrl' => route('admin.phase3-local-test-harness.disable'),
             ],
         ]);
     }

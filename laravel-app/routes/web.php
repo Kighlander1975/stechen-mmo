@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\Phase3LocalTestHarnessController;
 use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
 use App\Http\Controllers\Admin\RoomSupplyTestModeController;
 use App\Http\Controllers\LobbyController;
@@ -45,6 +46,12 @@ Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('a
 
     Route::post('/game-rooms/supply-test-mode/disable', [RoomSupplyTestModeController::class, 'disable'])
         ->name('game-rooms.supply-test-mode.disable');
+
+    Route::post('/phase-3/local-test-harness/enable', [Phase3LocalTestHarnessController::class, 'enable'])
+        ->name('phase3-local-test-harness.enable');
+
+    Route::post('/phase-3/local-test-harness/disable', [Phase3LocalTestHarnessController::class, 'disable'])
+        ->name('phase3-local-test-harness.disable');
 
     Route::get('/rewards/registration-bonus-backfill', [RegistrationBonusBackfillController::class, 'index'])
         ->name('rewards.registration-bonus-backfill.index');
