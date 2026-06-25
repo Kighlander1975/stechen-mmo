@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePhase3LocalTestSessionIsValid;
 use App\Http\Middleware\EnsureUserHasPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -12,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            EnsurePhase3LocalTestSessionIsValid::class,
+        ]);
+
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
         ]);
@@ -19,3 +24,4 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
