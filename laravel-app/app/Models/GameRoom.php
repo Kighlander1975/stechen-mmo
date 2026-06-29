@@ -11,6 +11,7 @@ class GameRoom extends Model
     public const STATUS_DRAFT = 'draft';
     public const STATUS_OPEN = 'open';
     public const STATUS_FULL = 'full';
+    public const STATUS_STARTING = 'starting';
     public const STATUS_RUNNING = 'running';
     public const STATUS_FINISHED = 'finished';
     public const STATUS_CANCELLED = 'cancelled';
@@ -34,6 +35,8 @@ class GameRoom extends Model
         'scheduled_start_at',
         'cancelled_at',
         'cancellation_reason',
+        'starting_at',
+        'starts_at',
         'rake_basis_points',
         'created_by_user_id',
         'is_test',
@@ -47,6 +50,8 @@ class GameRoom extends Model
             'max_players' => 'integer',
             'scheduled_start_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'starting_at' => 'datetime',
+            'starts_at' => 'datetime',
             'rake_basis_points' => 'integer',
             'is_test' => 'boolean',
         ];
@@ -93,6 +98,16 @@ class GameRoom extends Model
     public function isFull(): bool
     {
         return $this->status === self::STATUS_FULL;
+    }
+
+    public function isStarting(): bool
+    {
+        return $this->status === self::STATUS_STARTING;
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->status === self::STATUS_RUNNING;
     }
 
     public function isScheduled(): bool
