@@ -23,6 +23,7 @@ class LobbyRoomQueryService
             ->whereIn('status', [
                 GameRoom::STATUS_OPEN,
                 GameRoom::STATUS_FULL,
+                GameRoom::STATUS_STARTING,
                 GameRoom::STATUS_RUNNING,
                 GameRoom::STATUS_FINISHED,
             ]);
@@ -53,9 +54,10 @@ class LobbyRoomQueryService
         };
 
         return $roomsQuery
-            ->orderByRaw("CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 ELSE 3 END", [
+            ->orderByRaw("CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END", [
                 GameRoom::STATUS_OPEN,
                 GameRoom::STATUS_FULL,
+                GameRoom::STATUS_STARTING,
                 GameRoom::STATUS_RUNNING,
             ])
             ->orderBy('buy_in_units')
@@ -72,6 +74,7 @@ class LobbyRoomQueryService
         return [
             GameRoom::STATUS_OPEN,
             GameRoom::STATUS_FULL,
+            GameRoom::STATUS_STARTING,
             GameRoom::STATUS_RUNNING,
             GameRoom::STATUS_FINISHED,
         ];
@@ -88,3 +91,4 @@ class LobbyRoomQueryService
         ];
     }
 }
+

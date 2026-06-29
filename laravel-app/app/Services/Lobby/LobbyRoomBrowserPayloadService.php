@@ -20,7 +20,7 @@ class LobbyRoomBrowserPayloadService
      *     selectedRoom: ?array<string, mixed>,
      *     selectedRoomCode: ?string,
      *     selectedRoomVisible: bool,
-     *     meta: array{count: int}
+     *     meta: array{count: int, serverNow: string}
      * }
      */
     public function build(array $filters, ?string $selectedRoomCode = null): array
@@ -39,14 +39,17 @@ class LobbyRoomBrowserPayloadService
             $selectedRoomCode = null;
         }
 
+        $serverNow = now();
+
         return [
-            'rooms' => $this->formatRooms($rooms),
+            'rooms' => $this->formatRooms($rooms, $serverNow),
             'filters' => $normalizedFilters,
-            'selectedRoom' => $selectedRoom instanceof GameRoom ? $this->formatRoom($selectedRoom) : null,
+            'selectedRoom' => $selectedRoom instanceof GameRoom ? $this->formatRoom($selectedRoom, $serverNow) : null,
             'selectedRoomCode' => $selectedRoomCode,
             'selectedRoomVisible' => $selectedRoomVisible,
             'meta' => [
                 'count' => $rooms->count(),
+                'serverNow' => $serverNow->toJSON(),
             ],
         ];
     }
@@ -96,10 +99,10 @@ class LobbyRoomBrowserPayloadService
      * @param Collection<int, GameRoom> $rooms
      * @return list<array<string, mixed>>
      */
-    private function formatRooms(Collection $rooms): array
+    private function formatRooms(Collection $rooms, \DateTimeInterface $serverNow): array
     {
         return $rooms
-            ->map(fn (GameRoom $room): array => $this->formatRoom($room))
+            ->map(fn (GameRoom $room): array => $this->formatRoom($room, $serverNow))
             ->values()
             ->all();
     }
@@ -107,12 +110,15 @@ class LobbyRoomBrowserPayloadService
     /**
      * @return array<string, mixed>
      */
-    private function formatRoom(GameRoom $room): array
+    private function formatRoom(GameRoom $room, \DateTimeInterface $serverNow): array
     {
         $activePlayersCount = (int) ($room->active_players_count ?? 0);
         $grossPoolUnits = $room->buy_in_units * $room->max_players;
         $rakeUnits = intdiv($grossPoolUnits * $room->rake_basis_points, 10000);
         $prizePoolUnits = $grossPoolUnits - $rakeUnits;
+        $startsInSeconds = $room->starts_at !== null
+            ? max(0, $room->starts_at->getTimestamp() - $serverNow->getTimestamp())
+            : null;
 
         return [
             'publicCode' => $room->public_code,
@@ -120,6 +126,10 @@ class LobbyRoomBrowserPayloadService
             'status' => $room->status,
             'statusDisplay' => $this->statusDisplay($room->status),
             'statusTone' => $this->statusTone($room->status),
+            'isStarting' => $room->isStarting(),
+            'startingAt' => $room->starting_at?->toJSON(),
+            'startsAt' => $room->starts_at?->toJSON(),
+            'startsInSeconds' => $startsInSeconds,
             'startMode' => $room->start_mode,
             'startDisplay' => $room->isScheduled() ? 'Geplant' : 'Wenn voll',
             'assetType' => $room->asset_type,
@@ -167,6 +177,7 @@ class LobbyRoomBrowserPayloadService
         return match ($status) {
             GameRoom::STATUS_OPEN => 'Offen',
             GameRoom::STATUS_FULL => 'Voll',
+            GameRoom::STATUS_STARTING => 'Startet',
             GameRoom::STATUS_RUNNING => 'Läuft',
             GameRoom::STATUS_FINISHED => 'Beendet',
             default => $status,
@@ -178,6 +189,7 @@ class LobbyRoomBrowserPayloadService
         return match ($status) {
             GameRoom::STATUS_OPEN => 'success',
             GameRoom::STATUS_FULL => 'neutral',
+            GameRoom::STATUS_STARTING => 'warning',
             GameRoom::STATUS_RUNNING => 'warning',
             GameRoom::STATUS_FINISHED => 'muted',
             default => 'neutral',

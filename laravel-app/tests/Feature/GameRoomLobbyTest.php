@@ -684,6 +684,52 @@ class GameRoomLobbyTest extends TestCase
             ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
     }
 
+    public function test_lobby_rooms_api_returns_starting_room_timing_payload(): void
+    {
+        $user = User::factory()->create();
+        $now = now()->milliseconds(0);
+        $startsAt = $now->copy()->addSeconds(10);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-STARTING',
+            'name' => 'API Startphase Raum',
+            'status' => GameRoom::STATUS_STARTING,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 50,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 200,
+            'starting_at' => $now,
+            'starts_at' => $startsAt,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'status' => GameRoom::STATUS_STARTING,
+            'room' => 'ROOM-API-STARTING',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-STARTING')
+            ->assertJsonPath('rooms.0.status', GameRoom::STATUS_STARTING)
+            ->assertJsonPath('rooms.0.statusDisplay', 'Startet')
+            ->assertJsonPath('rooms.0.statusTone', 'warning')
+            ->assertJsonPath('rooms.0.isStarting', true)
+            ->assertJsonPath('rooms.0.startingAt', $now->toJSON())
+            ->assertJsonPath('rooms.0.startsAt', $startsAt->toJSON())
+            ->assertJsonPath('rooms.0.startsInSeconds', 10)
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-API-STARTING')
+            ->assertJsonPath('selectedRoom.isStarting', true)
+            ->assertJsonPath('selectedRoom.startsAt', $startsAt->toJSON())
+            ->assertJsonPath('selectedRoomCode', 'ROOM-API-STARTING')
+            ->assertJsonPath('selectedRoomVisible', true);
+
+        $this->assertIsString($response->json('meta.serverNow'));
+    }
+
     public function test_lobby_rooms_api_filters_rooms(): void
     {
         $user = User::factory()->create();

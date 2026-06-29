@@ -32,6 +32,7 @@ class LobbyController extends Controller
                 ->whereIn('status', [
                     GameRoom::STATUS_OPEN,
                     GameRoom::STATUS_FULL,
+                    GameRoom::STATUS_STARTING,
                     GameRoom::STATUS_RUNNING,
                     GameRoom::STATUS_FINISHED,
                 ])
