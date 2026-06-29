@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\GameRoom;
+use App\Services\GameRooms\GameRoomStartCoordinatorService;
 use App\Services\GameRooms\GameRoomSupplyService;
 use App\Services\RegistrationBonusBackfillService;
 use Illuminate\Foundation\Inspiring;
@@ -68,3 +70,68 @@ Artisan::command('game-rooms:supply {--ignore-wallet-eligibility : Use local/tes
 
     return self::SUCCESS;
 })->purpose('Supply open Sit\'n\'Go game rooms dynamically');
+
+
+Artisan::command('game-rooms:advance-starts {--limit=100 : Maximum number of rooms per phase to evaluate} {--dry-run : Preview matching rooms without changing their status}', function (GameRoomStartCoordinatorService $startCoordinator) {
+    $limit = (int) $this->option('limit');
+    $dryRun = (bool) $this->option('dry-run');
+
+    if ($limit < 1) {
+        $this->error('The --limit option must be a positive integer.');
+
+        return self::FAILURE;
+    }
+
+    $fullRooms = GameRoom::query()
+        ->where('status', GameRoom::STATUS_FULL)
+        ->orderBy('id')
+        ->limit($limit)
+        ->get();
+
+    $startingRooms = GameRoom::query()
+        ->where('status', GameRoom::STATUS_STARTING)
+        ->whereNotNull('starts_at')
+        ->where('starts_at', '<=', now())
+        ->orderBy('starts_at')
+        ->orderBy('id')
+        ->limit($limit)
+        ->get();
+
+    $summary = [
+        'full_evaluated' => $fullRooms->count(),
+        'start_requested' => 0,
+        'starting_due_evaluated' => $startingRooms->count(),
+        'finalized' => 0,
+        'dry_run' => $dryRun,
+    ];
+
+    if (! $dryRun) {
+        foreach ($fullRooms as $room) {
+            if ($startCoordinator->requestStartIfReady($room)) {
+                $summary['start_requested']++;
+            }
+        }
+
+        foreach ($startingRooms as $room) {
+            if ($startCoordinator->finalizeStartIfDue($room)) {
+                $summary['finalized']++;
+            }
+        }
+    }
+
+    $this->info($dryRun ? 'Game room starts dry-run completed.' : 'Game room starts advanced.');
+
+    $this->table(
+        ['Metric', 'Value'],
+        [
+            ['full_evaluated', $summary['full_evaluated']],
+            ['start_requested', $summary['start_requested']],
+            ['starting_due_evaluated', $summary['starting_due_evaluated']],
+            ['finalized', $summary['finalized']],
+            ['dry_run', $summary['dry_run'] ? 'yes' : 'no'],
+        ],
+    );
+
+    return self::SUCCESS;
+})->purpose('Advance game room start phases');
+
