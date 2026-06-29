@@ -32,6 +32,8 @@ class GameRoom extends Model
         'max_players',
         'start_mode',
         'scheduled_start_at',
+        'cancelled_at',
+        'cancellation_reason',
         'rake_basis_points',
         'created_by_user_id',
         'is_test',
@@ -44,6 +46,7 @@ class GameRoom extends Model
             'min_players' => 'integer',
             'max_players' => 'integer',
             'scheduled_start_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'rake_basis_points' => 'integer',
             'is_test' => 'boolean',
         ];

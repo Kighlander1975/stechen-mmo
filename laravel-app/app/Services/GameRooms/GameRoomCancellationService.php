@@ -54,6 +54,8 @@ class GameRoomCancellationService
 
             $lockedRoom->forceFill([
                 'status' => GameRoom::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
             ])->save();
 
             return $cancelledPlayerCount;
