@@ -6,6 +6,7 @@ use App\Services\GameRooms\GameRoomSupplyService;
 use App\Services\RegistrationBonusBackfillService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -134,4 +135,10 @@ Artisan::command('game-rooms:advance-starts {--limit=100 : Maximum number of roo
 
     return self::SUCCESS;
 })->purpose('Advance game room start phases');
+
+
+Schedule::command('game-rooms:advance-starts --limit=100')
+    ->everyTwoSeconds()
+    ->withoutOverlapping();
+
 
