@@ -800,3 +800,4 @@ Ausgeschlossene Dateien bleiben als lokale Quellen erhalten.
 Nützliche Informationen aus ausgeschlossenen Dateien werden bei Bedarf gezielt angefragt.
 Sensible oder veraltete Details werden nicht ungeprüft übernommen.
 ```
+
