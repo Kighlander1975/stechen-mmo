@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     brand: {
@@ -51,6 +51,7 @@ const props = defineProps({
 });
 
 const walletMode = ref('play');
+const walletState = ref({ ...(props.wallet || {}) });
 
 const statusToneClasses = {
     neutral: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
@@ -72,10 +73,13 @@ const walletModeLabel = computed(() => (walletMode.value === 'play' ? 'Spielgeld
 
 const walletBalanceLabel = computed(() => {
     if (walletMode.value === 'play') {
-        return props.wallet?.playMoneyBalanceDisplay || '0 St$';
+        return walletState.value?.primaryDisplay
+            || walletState.value?.availableDisplay
+            || walletState.value?.playMoneyBalanceDisplay
+            || '0 St$';
     }
 
-    return props.wallet?.realMoneyBalanceDisplay || 'Deaktiviert';
+    return walletState.value?.realMoneyBalanceDisplay || 'Deaktiviert';
 });
 
 const walletHint = computed(() => {
@@ -113,6 +117,25 @@ function navClass(item) {
 function toggleWalletMode() {
     walletMode.value = walletMode.value === 'play' ? 'real' : 'play';
 }
+
+function handleWalletUpdated(event) {
+    if (!event?.detail) {
+        return;
+    }
+
+    walletState.value = {
+        ...walletState.value,
+        ...event.detail,
+    };
+}
+
+onMounted(() => {
+    window.addEventListener('stechen:wallet-updated', handleWalletUpdated);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('stechen:wallet-updated', handleWalletUpdated);
+});
 </script>
 
 <template>

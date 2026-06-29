@@ -13,6 +13,7 @@ class GameRoomPlayer extends Model
     public const STATUS_PLAYING = 'playing';
     public const STATUS_LEFT = 'left';
     public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_FINISHED = 'finished';
 
     protected $fillable = [
         'game_room_id',
@@ -24,6 +25,7 @@ class GameRoomPlayer extends Model
         'reserved_units',
         'joined_at',
         'left_at',
+        'finished_at',
     ];
 
     protected function casts(): array
@@ -35,6 +37,7 @@ class GameRoomPlayer extends Model
             'reserved_units' => 'integer',
             'joined_at' => 'datetime',
             'left_at' => 'datetime',
+            'finished_at' => 'datetime',
         ];
     }
 

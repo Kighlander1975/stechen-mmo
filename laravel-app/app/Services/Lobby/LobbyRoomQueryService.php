@@ -3,6 +3,8 @@
 namespace App\Services\Lobby;
 
 use App\Models\GameRoom;
+use App\Models\GameRoomPlayer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
 class LobbyRoomQueryService
@@ -11,22 +13,64 @@ class LobbyRoomQueryService
      * @param array<string, mixed> $filters
      * @return Collection<int, GameRoom>
      */
-    public function getFilteredRooms(array $filters): Collection
+    public function getFilteredRooms(array $filters, ?User $user = null): Collection
+    {
+        $roomsQuery = GameRoom::query()
+            ->withCount('activePlayers')
+            ->whereIn('status', $this->visibleStatuses());
+
+        $this->applyFilters($roomsQuery, $filters);
+
+        $filteredRooms = $this->applyOrdering($roomsQuery)->get();
+
+        if ($user === null) {
+            return $filteredRooms;
+        }
+
+        $joinedRoomIds = GameRoomPlayer::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', $this->activeParticipationStatuses())
+            ->pluck('game_room_id')
+            ->unique()
+            ->values();
+
+        if ($joinedRoomIds->isEmpty()) {
+            return $filteredRooms;
+        }
+
+        $joinedRooms = GameRoom::query()
+            ->withCount('activePlayers')
+            ->whereIn('id', $joinedRoomIds)
+            ->whereIn('status', $this->visibleStatuses())
+            ->get();
+
+        return $joinedRooms
+            ->sortBy([
+                fn (GameRoom $room): int => array_search($room->status, $this->visibleStatuses(), true) ?: 0,
+                fn (GameRoom $room): int => (int) $room->buy_in_units,
+                fn (GameRoom $room): int => (int) $room->max_players,
+                fn (GameRoom $room): string => (string) $room->name,
+            ])
+            ->concat($filteredRooms)
+            ->unique('id')
+            ->values();
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<GameRoom> $roomsQuery
+     * @param array<string, mixed> $filters
+     */
+    private function applyFilters($roomsQuery, array $filters): void
     {
         $status = $filters['status'] ?? null;
         $startMode = $filters['start_mode'] ?? null;
         $buyIn = $filters['buy_in'] ?? null;
         $players = $filters['players'] ?? null;
+        $onlyTest = (bool) ($filters['only_test'] ?? false);
 
-        $roomsQuery = GameRoom::query()
-            ->withCount('activePlayers')
-            ->whereIn('status', [
-                GameRoom::STATUS_OPEN,
-                GameRoom::STATUS_FULL,
-                GameRoom::STATUS_STARTING,
-                GameRoom::STATUS_RUNNING,
-                GameRoom::STATUS_FINISHED,
-            ]);
+        if ($onlyTest) {
+            $roomsQuery->where('is_test', true);
+        }
 
         if (in_array($status, $this->allowedStatuses(), true)) {
             $roomsQuery->where('status', $status);
@@ -52,7 +96,14 @@ class LobbyRoomQueryService
             'large' => $roomsQuery->whereBetween('max_players', [7, GameRoom::MAX_ALLOWED_PLAYERS]),
             default => null,
         };
+    }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<GameRoom> $roomsQuery
+     * @return \Illuminate\Database\Eloquent\Builder<GameRoom>
+     */
+    private function applyOrdering($roomsQuery)
+    {
         return $roomsQuery
             ->orderByRaw("CASE status WHEN ? THEN 0 WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 4 END", [
                 GameRoom::STATUS_OPEN,
@@ -62,8 +113,34 @@ class LobbyRoomQueryService
             ])
             ->orderBy('buy_in_units')
             ->orderBy('max_players')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function visibleStatuses(): array
+    {
+        return [
+            GameRoom::STATUS_OPEN,
+            GameRoom::STATUS_FULL,
+            GameRoom::STATUS_STARTING,
+            GameRoom::STATUS_RUNNING,
+            GameRoom::STATUS_FINISHED,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function activeParticipationStatuses(): array
+    {
+        return [
+            GameRoomPlayer::STATUS_RESERVED,
+            GameRoomPlayer::STATUS_JOINED,
+            GameRoomPlayer::STATUS_READY,
+            GameRoomPlayer::STATUS_PLAYING,
+        ];
     }
 
     /**

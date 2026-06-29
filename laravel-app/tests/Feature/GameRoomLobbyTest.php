@@ -6,6 +6,8 @@ use App\Models\GameRoom;
 use App\Models\GameRoomPlayer;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\GameRooms\GameRoomJoinService;
+use App\Services\Phase3\Phase3LocalTestHarnessService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -914,6 +916,347 @@ class GameRoomLobbyTest extends TestCase
                 && ($props['selectedRoom']['feeDisplay'] ?? null) === 'abzgl. 2,00 % Gebühr'
                 && ($props['selectedRoom']['startDisplay'] ?? null) === 'Wenn voll';
         });
+    }
+
+
+    public function test_lobby_only_test_filter_shows_only_test_rooms_and_keeps_other_filters(): void
+    {
+        app(Phase3LocalTestHarnessService::class)->enable();
+
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-NORMAL-MICRO',
+            'name' => 'Normaler Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 10,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => false,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-TEST-MICRO',
+            'name' => '[TEST] Mikro Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 10,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => true,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-TEST-HIGH',
+            'name' => '[TEST] High Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => true,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby', [
+            'only_test' => '1',
+            'buy_in' => 'micro',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('[TEST] Mikro Tisch')
+            ->assertDontSee('Normaler Mikro Tisch')
+            ->assertDontSee('[TEST] High Tisch')
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['meta']['count'] ?? null) === 1
+                    && ($props['meta']['phase3LocalTestHarnessEnabled'] ?? null) === true
+                    && ($props['filters']['only_test'] ?? null) === true
+                    && ($props['filters']['buy_in'] ?? null) === 'micro'
+                    && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-TEST-MICRO'
+                    && ($props['rooms'][0]['isTest'] ?? null) === true;
+            });
+    }
+
+    public function test_lobby_rooms_api_only_test_filter_shows_only_test_rooms(): void
+    {
+        app(Phase3LocalTestHarnessService::class)->enable();
+
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-NORMAL-TEST-FILTER',
+            'name' => 'API Normaler Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 10,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => false,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-TEST-FILTER',
+            'name' => 'API Test Tisch',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 10,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => true,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'only_test' => '1',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('meta.phase3LocalTestHarnessEnabled', true)
+            ->assertJsonPath('filters.only_test', true)
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-TEST-FILTER')
+            ->assertJsonPath('rooms.0.isTest', true);
+
+        $this->assertStringNotContainsString('ROOM-API-NORMAL-TEST-FILTER', $response->getContent());
+    }
+
+    public function test_lobby_room_browser_meta_reports_test_mode_disabled_by_default(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('lobby'));
+
+        $response
+            ->assertOk()
+            ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
+                return ($props['meta']['phase3LocalTestHarnessEnabled'] ?? null) === false
+                    && ($props['filters']['only_test'] ?? null) === false;
+            });
+    }
+
+
+    public function test_lobby_room_join_api_joins_room_and_returns_updated_payload(): void
+    {
+        $user = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $wallet = Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1_000,
+            'reserved_units' => 0,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-JOIN-API',
+            'name' => 'Join API Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('lobby.rooms.join', [
+            'publicCode' => $room->public_code,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('lobby.selectedRoom.publicCode', 'ROOM-JOIN-API')
+            ->assertJsonPath('lobby.selectedRoom.currentUserParticipation.isParticipating', true)
+            ->assertJsonPath('lobby.selectedRoom.currentUserParticipation.seatNumber', 1)
+            ->assertJsonPath('lobby.selectedRoom.currentUserParticipation.reservedUnits', 100)
+            ->assertJsonPath('lobby.currentUser.activeParticipationCount', 1)
+            ->assertJsonPath('lobby.currentUser.waitingParticipationCount', 1)
+            ->assertJsonPath('lobby.currentUser.wallet.balanceUnits', 1_000)
+            ->assertJsonPath('lobby.currentUser.wallet.reservedUnits', 100)
+            ->assertJsonPath('lobby.currentUser.wallet.availableUnits', 900)
+            ->assertJsonPath('lobby.currentUser.wallet.primaryDisplay', '900 St$');
+
+        $this->assertSame(100, $wallet->fresh()->reserved_units);
+        $this->assertDatabaseHas('game_room_players', [
+            'game_room_id' => $room->id,
+            'user_id' => $user->id,
+            'status' => GameRoomPlayer::STATUS_RESERVED,
+            'seat_number' => 1,
+            'reserved_units' => 100,
+        ]);
+    }
+
+    public function test_lobby_room_leave_api_leaves_room_and_returns_updated_payload(): void
+    {
+        $user = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $wallet = Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1_000,
+            'reserved_units' => 0,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-LEAVE-API',
+            'name' => 'Leave API Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        app(GameRoomJoinService::class)->join($user, $room);
+
+        $this->assertSame(100, $wallet->fresh()->reserved_units);
+
+        $response = $this->actingAs($user)->postJson(route('lobby.rooms.leave', [
+            'publicCode' => $room->public_code,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('lobby.selectedRoom.publicCode', 'ROOM-LEAVE-API')
+            ->assertJsonPath('lobby.selectedRoom.currentUserParticipation.isParticipating', false)
+            ->assertJsonPath('lobby.currentUser.activeParticipationCount', 0)
+            ->assertJsonPath('lobby.currentUser.waitingParticipationCount', 0)
+            ->assertJsonPath('lobby.currentUser.wallet.balanceUnits', 1_000)
+            ->assertJsonPath('lobby.currentUser.wallet.reservedUnits', 0)
+            ->assertJsonPath('lobby.currentUser.wallet.availableUnits', 1_000)
+            ->assertJsonPath('lobby.currentUser.wallet.primaryDisplay', '1.000 St$');
+
+        $this->assertSame(0, $wallet->fresh()->reserved_units);
+        $this->assertDatabaseMissing('game_room_players', [
+            'game_room_id' => $room->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_lobby_room_join_api_rejects_insufficient_wallet_units(): void
+    {
+        $user = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $wallet = Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 10,
+            'reserved_units' => 0,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-LOW-FUNDS-API',
+            'name' => 'Low Funds API Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 500,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('lobby.rooms.join', [
+            'publicCode' => $room->public_code,
+        ]));
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Not enough available wallet units.')
+            ->assertJsonPath('lobby.selectedRoom.publicCode', 'ROOM-LOW-FUNDS-API')
+            ->assertJsonPath('lobby.selectedRoom.currentUserParticipation.isParticipating', false);
+
+        $this->assertSame(0, $wallet->fresh()->reserved_units);
+        $this->assertDatabaseMissing('game_room_players', [
+            'game_room_id' => $room->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_lobby_payload_lists_joined_rooms_first_even_when_filters_hide_them(): void
+    {
+        $user = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        Wallet::query()->create([
+            'user_id' => $user->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 10_000,
+            'reserved_units' => 0,
+        ]);
+
+        $joinedRoom = GameRoom::create([
+            'public_code' => 'ROOM-JOINED-MICRO',
+            'name' => 'Gejointer Mikro Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 10,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        GameRoom::create([
+            'public_code' => 'ROOM-FILTER-HIGH',
+            'name' => 'Gefilterter High Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 25_000,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        app(GameRoomJoinService::class)->join($user, $joinedRoom);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms', [
+            'buy_in' => 'high',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('filters.buy_in', 'high')
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-JOINED-MICRO')
+            ->assertJsonPath('rooms.0.currentUserParticipation.isParticipating', true)
+            ->assertJsonPath('rooms.1.publicCode', 'ROOM-FILTER-HIGH')
+            ->assertJsonPath('currentUser.activeParticipationCount', 1)
+            ->assertJsonPath('currentUser.waitingParticipationCount', 1);
     }
 
 }

@@ -4,8 +4,13 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\Phase3LocalTestHarnessController;
 use App\Http\Controllers\Admin\RegistrationBonusBackfillController;
 use App\Http\Controllers\Admin\RoomSupplyTestModeController;
+use App\Http\Controllers\GameFinishController;
+use App\Http\Controllers\GamePlayController;
+use App\Http\Controllers\GamePlayStateController;
 use App\Http\Controllers\LobbyController;
 use App\Http\Controllers\LobbyRoomsController;
+use App\Http\Controllers\LobbyRoomJoinController;
+use App\Http\Controllers\LobbyRoomLeaveController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RewardController;
 use App\Models\Wallet;
@@ -70,6 +75,28 @@ Route::get('/lobby', LobbyController::class)
 Route::get('/lobby/rooms', LobbyRoomsController::class)
     ->middleware(['auth', 'verified'])
     ->name('lobby.rooms');
+
+
+Route::post('/lobby/rooms/{publicCode}/join', LobbyRoomJoinController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('lobby.rooms.join');
+
+Route::post('/lobby/rooms/{publicCode}/leave', LobbyRoomLeaveController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('lobby.rooms.leave');
+
+
+Route::get('/play/{publicCode}', GamePlayController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('game.play');
+
+Route::get('/play/{publicCode}/state', GamePlayStateController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('game.play.state');
+
+Route::post('/play/{publicCode}/finish', GameFinishController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('game.play.finish');
 
 Route::get('/dashboard', function (RewardService $rewardService) {
     $playMoneyWallet = Wallet::query()

@@ -75,6 +75,7 @@ class GameRoom extends Model
                 GameRoomPlayer::STATUS_JOINED,
                 GameRoomPlayer::STATUS_READY,
                 GameRoomPlayer::STATUS_PLAYING,
+                GameRoomPlayer::STATUS_FINISHED,
             ]);
     }
 

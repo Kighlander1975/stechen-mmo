@@ -20,6 +20,7 @@ class LobbyRoomsController extends Controller
             'start_mode' => ['nullable', 'string', Rule::in($roomQueryService->allowedStartModes())],
             'buy_in' => ['nullable', 'string', Rule::in($payloadService->allowedBuyInCategories())],
             'players' => ['nullable', 'string', Rule::in($payloadService->allowedPlayerCategories())],
+            'only_test' => ['nullable', 'boolean'],
             'room' => ['nullable', 'string', 'max:64'],
         ]);
 
@@ -29,8 +30,10 @@ class LobbyRoomsController extends Controller
                 'start_mode' => $validated['start_mode'] ?? null,
                 'buy_in' => $validated['buy_in'] ?? null,
                 'players' => $validated['players'] ?? null,
+                'only_test' => $validated['only_test'] ?? false,
             ],
             $validated['room'] ?? null,
+            $request->user(),
         );
 
         return response()->json($payload);

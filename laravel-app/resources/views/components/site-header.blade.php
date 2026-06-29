@@ -62,17 +62,27 @@
         : filter_var($showWalletPanel, FILTER_VALIDATE_BOOLEAN);
 
     $playMoneyBalanceUnits = (int) $playMoneyBalanceUnits;
+    $playMoneyGrossBalanceUnits = $playMoneyBalanceUnits;
+    $playMoneyReservedUnits = 0;
 
-    if ($user && $playMoneyBalanceUnits === 0) {
-        $playMoneyBalanceUnits = (int) (\App\Models\Wallet::query()
+    if ($user) {
+        $playMoneyWallet = \App\Models\Wallet::query()
             ->where('user_id', $user->id)
             ->where('wallet_type', \App\Models\Wallet::TYPE_USER)
             ->where('asset_type', \App\Models\Wallet::ASSET_PLAY_MONEY)
             ->where('currency_code', \App\Models\Wallet::CURRENCY_STECHEN_DOLLAR)
-            ->value('balance_units') ?? 0);
+            ->first();
+
+        if ($playMoneyWallet !== null) {
+            $playMoneyGrossBalanceUnits = (int) $playMoneyWallet->balance_units;
+            $playMoneyReservedUnits = (int) $playMoneyWallet->reserved_units;
+            $playMoneyBalanceUnits = max(0, $playMoneyGrossBalanceUnits - $playMoneyReservedUnits);
+        }
     }
 
     $playMoneyBalanceDisplay = number_format($playMoneyBalanceUnits, 0, ',', '.').' St$';
+    $playMoneyGrossBalanceDisplay = number_format($playMoneyGrossBalanceUnits, 0, ',', '.').' St$';
+    $playMoneyReservedDisplay = number_format($playMoneyReservedUnits, 0, ',', '.').' St$';
 
     $headerProps = [
         'brand' => 'Stechen-MMO',
@@ -86,6 +96,13 @@
         'wallet' => [
             'playMoneyBalanceUnits' => $playMoneyBalanceUnits,
             'playMoneyBalanceDisplay' => $playMoneyBalanceDisplay,
+            'balanceUnits' => $playMoneyGrossBalanceUnits,
+            'reservedUnits' => $playMoneyReservedUnits,
+            'availableUnits' => $playMoneyBalanceUnits,
+            'balanceDisplay' => $playMoneyGrossBalanceDisplay,
+            'reservedDisplay' => $playMoneyReservedDisplay,
+            'availableDisplay' => $playMoneyBalanceDisplay,
+            'primaryDisplay' => $playMoneyBalanceDisplay,
             'realMoneyEnabled' => false,
             'realMoneyBalanceDisplay' => 'Deaktiviert',
             'cashierEnabled' => false,

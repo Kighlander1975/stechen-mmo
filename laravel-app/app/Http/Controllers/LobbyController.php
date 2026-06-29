@@ -20,6 +20,7 @@ class LobbyController extends Controller
             'start_mode' => $request->query('start_mode'),
             'buy_in' => $request->query('buy_in'),
             'players' => $request->query('players'),
+            'only_test' => $request->query('only_test'),
         ];
 
         $selectedRoom = null;
@@ -40,12 +41,13 @@ class LobbyController extends Controller
         }
 
         return view('lobby.index', [
-            'gameRooms' => $lobbyRoomQueryService->getFilteredRooms($filters),
+            'gameRooms' => $lobbyRoomQueryService->getFilteredRooms($filters, $request->user()),
             'filters' => $filters,
             'selectedRoom' => $selectedRoom,
             'lobbyRoomBrowserProps' => $lobbyRoomBrowserPayloadService->build(
                 $filters,
                 $selectedRoomCode !== '' ? $selectedRoomCode : null,
+                $request->user(),
             ),
         ]);
     }

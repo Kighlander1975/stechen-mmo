@@ -40,7 +40,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
 
         $this->assertTrue(SystemSetting::phase3LocalTestHarnessIsEnabled());
         $this->assertCount(6, $result['users']);
-        $this->assertCount(4, $result['rooms']);
+        $this->assertCount(5, $result['rooms']);
         $this->assertSame([
             'rooms' => 0,
             'ledger_entries' => 0,
@@ -51,7 +51,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
         $this->assertDatabaseCount('users', 6);
         $this->assertDatabaseCount('wallets', 6);
         $this->assertDatabaseCount('ledger_entries', 5);
-        $this->assertDatabaseCount('game_rooms', 4);
+        $this->assertDatabaseCount('game_rooms', 5);
 
         $player = User::query()->where('email', 'phase3.player1@phase3-test.stechen.local')->firstOrFail();
         $lowFunds = User::query()->where('email', 'phase3.lowfunds@phase3-test.stechen.local')->firstOrFail();
@@ -97,6 +97,17 @@ class Phase3LocalTestDataServiceTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('game_rooms', [
+            'public_code' => 'P3TEST-3P-10',
+            'name' => '[TEST] Dreier Tisch 10',
+            'status' => GameRoom::STATUS_OPEN,
+            'buy_in_units' => 10,
+            'min_players' => 3,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'is_test' => true,
+        ]);
+
+        $this->assertDatabaseHas('game_rooms', [
             'public_code' => 'P3TEST-6P-10000',
             'buy_in_units' => 10_000,
             'max_players' => 6,
@@ -111,7 +122,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
         $firstRun = $service->activate();
 
         $this->assertCount(6, $firstRun['users']);
-        $this->assertCount(4, $firstRun['rooms']);
+        $this->assertCount(5, $firstRun['rooms']);
 
         $oldUser = User::query()->where('email', 'phase3.player1@phase3-test.stechen.local')->firstOrFail();
         $oldWallet = $oldUser->wallets()->firstOrFail();
@@ -129,9 +140,9 @@ class Phase3LocalTestDataServiceTest extends TestCase
         $secondRun = $service->activate();
 
         $this->assertCount(6, $secondRun['users']);
-        $this->assertCount(4, $secondRun['rooms']);
+        $this->assertCount(5, $secondRun['rooms']);
         $this->assertSame([
-            'rooms' => 4,
+            'rooms' => 5,
             'ledger_entries' => 5,
             'wallets' => 6,
             'users' => 6,
@@ -148,7 +159,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
         $this->assertDatabaseCount('users', 6);
         $this->assertDatabaseCount('wallets', 6);
         $this->assertDatabaseCount('ledger_entries', 5);
-        $this->assertDatabaseCount('game_rooms', 4);
+        $this->assertDatabaseCount('game_rooms', 5);
     }
 
     public function test_deactivate_cleans_up_phase3_test_data_and_disables_harness(): void
@@ -161,7 +172,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
 
         $this->assertFalse(SystemSetting::phase3LocalTestHarnessIsEnabled());
         $this->assertSame([
-            'rooms' => 4,
+            'rooms' => 5,
             'ledger_entries' => 5,
             'wallets' => 6,
             'users' => 6,
@@ -236,7 +247,7 @@ class Phase3LocalTestDataServiceTest extends TestCase
             ->assertSee('P3TEST-HU-10', false)
             ->assertSee('[TEST] Heads Up 10')
             ->assertViewHas('lobbyRoomBrowserProps', function (array $props): bool {
-                return ($props['meta']['count'] ?? null) === 4
+                return ($props['meta']['count'] ?? null) === 5
                     && collect($props['rooms'] ?? [])->contains(
                         fn (array $room): bool => ($room['publicCode'] ?? null) === 'P3TEST-HU-10'
                             && ($room['buyInDisplay'] ?? null) === '10 St$'

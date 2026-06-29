@@ -308,6 +308,15 @@ class Phase3LocalTestDataService
                 'rake_basis_points' => 0,
             ],
             [
+                'key' => 'three-player-10',
+                'public_code' => 'P3TEST-3P-10',
+                'name' => '[TEST] Dreier Tisch 10',
+                'buy_in_units' => 10,
+                'min_players' => 3,
+                'max_players' => 3,
+                'rake_basis_points' => 0,
+            ],
+            [
                 'key' => 'small-500',
                 'public_code' => 'P3TEST-4P-500',
                 'name' => '[TEST] Vierer Tisch 500',

@@ -3,12 +3,17 @@
 namespace App\Services\Lobby;
 
 use App\Models\GameRoom;
+use App\Models\GameRoomPlayer;
+use App\Models\User;
+use App\Models\Wallet;
+use App\Services\Phase3\Phase3LocalTestHarnessService;
 use Illuminate\Database\Eloquent\Collection;
 
 class LobbyRoomBrowserPayloadService
 {
     public function __construct(
         private readonly LobbyRoomQueryService $roomQueryService,
+        private readonly Phase3LocalTestHarnessService $phase3LocalTestHarness,
     ) {
     }
 
@@ -16,17 +21,17 @@ class LobbyRoomBrowserPayloadService
      * @param array<string, mixed> $filters
      * @return array{
      *     rooms: list<array<string, mixed>>,
-     *     filters: array{status: ?string, start_mode: ?string, buy_in: ?string, players: ?string},
+     *     filters: array{status: ?string, start_mode: ?string, buy_in: ?string, players: ?string, only_test: bool},
      *     selectedRoom: ?array<string, mixed>,
      *     selectedRoomCode: ?string,
      *     selectedRoomVisible: bool,
-     *     meta: array{count: int, serverNow: string}
+     *     meta: array{count: int, serverNow: string, phase3LocalTestHarnessEnabled: bool}
      * }
      */
-    public function build(array $filters, ?string $selectedRoomCode = null): array
+    public function build(array $filters, ?string $selectedRoomCode = null, ?User $user = null): array
     {
         $normalizedFilters = $this->normalizeFilters($filters);
-        $rooms = $this->roomQueryService->getFilteredRooms($normalizedFilters);
+        $rooms = $this->roomQueryService->getFilteredRooms($normalizedFilters, $user);
 
         $selectedRoomCode = $this->normalizeSelectedRoomCode($selectedRoomCode);
         $selectedRoom = $selectedRoomCode !== null
@@ -42,21 +47,23 @@ class LobbyRoomBrowserPayloadService
         $serverNow = now();
 
         return [
-            'rooms' => $this->formatRooms($rooms, $serverNow),
+            'rooms' => $this->formatRooms($rooms, $serverNow, $user),
             'filters' => $normalizedFilters,
-            'selectedRoom' => $selectedRoom instanceof GameRoom ? $this->formatRoom($selectedRoom, $serverNow) : null,
+            'selectedRoom' => $selectedRoom instanceof GameRoom ? $this->formatRoom($selectedRoom, $serverNow, $user) : null,
             'selectedRoomCode' => $selectedRoomCode,
             'selectedRoomVisible' => $selectedRoomVisible,
+            'currentUser' => $this->currentUserPayload($user),
             'meta' => [
                 'count' => $rooms->count(),
                 'serverNow' => $serverNow->toJSON(),
+                'phase3LocalTestHarnessEnabled' => $this->phase3LocalTestHarness->isEnabled(),
             ],
         ];
     }
 
     /**
      * @param array<string, mixed> $filters
-     * @return array{status: ?string, start_mode: ?string, buy_in: ?string, players: ?string}
+     * @return array{status: ?string, start_mode: ?string, buy_in: ?string, players: ?string, only_test: bool}
      */
     public function normalizeFilters(array $filters): array
     {
@@ -65,6 +72,7 @@ class LobbyRoomBrowserPayloadService
             'start_mode' => $this->normalizeNullableString($filters['start_mode'] ?? null),
             'buy_in' => $this->normalizeNullableString($filters['buy_in'] ?? null),
             'players' => $this->normalizeNullableString($filters['players'] ?? null),
+            'only_test' => $this->normalizeBoolean($filters['only_test'] ?? false),
         ];
     }
 
@@ -99,10 +107,10 @@ class LobbyRoomBrowserPayloadService
      * @param Collection<int, GameRoom> $rooms
      * @return list<array<string, mixed>>
      */
-    private function formatRooms(Collection $rooms, \DateTimeInterface $serverNow): array
+    private function formatRooms(Collection $rooms, \DateTimeInterface $serverNow, ?User $user = null): array
     {
         return $rooms
-            ->map(fn (GameRoom $room): array => $this->formatRoom($room, $serverNow))
+            ->map(fn (GameRoom $room): array => $this->formatRoom($room, $serverNow, $user))
             ->values()
             ->all();
     }
@@ -110,7 +118,7 @@ class LobbyRoomBrowserPayloadService
     /**
      * @return array<string, mixed>
      */
-    private function formatRoom(GameRoom $room, \DateTimeInterface $serverNow): array
+    private function formatRoom(GameRoom $room, \DateTimeInterface $serverNow, ?User $user = null): array
     {
         $activePlayersCount = (int) ($room->active_players_count ?? 0);
         $grossPoolUnits = $room->buy_in_units * $room->max_players;
@@ -120,10 +128,13 @@ class LobbyRoomBrowserPayloadService
             ? max(0, $room->starts_at->getTimestamp() - $serverNow->getTimestamp())
             : null;
 
+        $participation = $this->currentUserParticipation($room, $user);
+
         return [
             'publicCode' => $room->public_code,
             'name' => $room->name,
             'status' => $room->status,
+            'isTest' => (bool) $room->is_test,
             'statusDisplay' => $this->statusDisplay($room->status),
             'statusTone' => $this->statusTone($room->status),
             'isStarting' => $room->isStarting(),
@@ -147,7 +158,200 @@ class LobbyRoomBrowserPayloadService
             'feeDisplay' => 'abzgl. '.number_format($room->rake_basis_points / 100, 2, ',', '.').' % Gebühr',
             'buyInCategory' => $this->buyInCategory($room->buy_in_units),
             'playerCategory' => $this->playerCategory($room->max_players),
+            'currentUserParticipation' => $participation,
+            'actions' => [
+                'joinUrl' => route('lobby.rooms.join', ['publicCode' => $room->public_code]),
+                'leaveUrl' => route('lobby.rooms.leave', ['publicCode' => $room->public_code]),
+                'playUrl' => route('game.play', ['publicCode' => $room->public_code]),
+                'showJoin' => ! $participation['isParticipating'],
+                'showLeave' => $participation['isParticipating']
+                    && in_array($room->status, [GameRoom::STATUS_OPEN, GameRoom::STATUS_FULL], true)
+                    && in_array($participation['status'], [
+                        GameRoomPlayer::STATUS_RESERVED,
+                        GameRoomPlayer::STATUS_JOINED,
+                        GameRoomPlayer::STATUS_READY,
+                    ], true),
+                'showOpenGame' => $participation['isParticipating']
+                    && in_array($room->status, [
+                        GameRoom::STATUS_STARTING,
+                        GameRoom::STATUS_RUNNING,
+                        GameRoom::STATUS_FINISHED,
+                    ], true),
+            ],
         ];
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentUserPayload(?User $user): array
+    {
+        if ($user === null) {
+            return [
+                'activeParticipationCount' => 0,
+                'waitingParticipationCount' => 0,
+                'runningParticipationCount' => 0,
+                'finishedParticipationCount' => 0,
+                'wallet' => $this->emptyWalletPayload(),
+            ];
+        }
+
+        $participations = GameRoomPlayer::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                GameRoomPlayer::STATUS_RESERVED,
+                GameRoomPlayer::STATUS_JOINED,
+                GameRoomPlayer::STATUS_READY,
+                GameRoomPlayer::STATUS_PLAYING,
+                GameRoomPlayer::STATUS_FINISHED,
+            ])
+            ->get();
+
+        return [
+            'activeParticipationCount' => $participations
+                ->whereIn('status', [
+                    GameRoomPlayer::STATUS_RESERVED,
+                    GameRoomPlayer::STATUS_JOINED,
+                    GameRoomPlayer::STATUS_READY,
+                    GameRoomPlayer::STATUS_PLAYING,
+                ])
+                ->count(),
+            'waitingParticipationCount' => $participations
+                ->whereIn('status', [
+                    GameRoomPlayer::STATUS_RESERVED,
+                    GameRoomPlayer::STATUS_JOINED,
+                    GameRoomPlayer::STATUS_READY,
+                ])
+                ->count(),
+            'runningParticipationCount' => $participations
+                ->where('status', GameRoomPlayer::STATUS_PLAYING)
+                ->count(),
+            'finishedParticipationCount' => $participations
+                ->where('status', GameRoomPlayer::STATUS_FINISHED)
+                ->count(),
+            'wallet' => $this->walletPayload($user),
+        ];
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function walletPayload(User $user): array
+    {
+        $wallet = Wallet::query()
+            ->where('user_id', $user->id)
+            ->where('wallet_type', Wallet::TYPE_USER)
+            ->where('asset_type', Wallet::ASSET_PLAY_MONEY)
+            ->where('currency_code', Wallet::CURRENCY_STECHEN_DOLLAR)
+            ->first();
+
+        if ($wallet === null) {
+            return $this->emptyWalletPayload();
+        }
+
+        $balanceUnits = (int) $wallet->balance_units;
+        $reservedUnits = (int) $wallet->reserved_units;
+        $availableUnits = max(0, $balanceUnits - $reservedUnits);
+
+        return [
+            'balanceUnits' => $balanceUnits,
+            'reservedUnits' => $reservedUnits,
+            'availableUnits' => $availableUnits,
+            'balanceDisplay' => $this->formatStechenDollar($balanceUnits),
+            'reservedDisplay' => $this->formatStechenDollar($reservedUnits),
+            'availableDisplay' => $this->formatStechenDollar($availableUnits),
+            'primaryDisplay' => $this->formatStechenDollar($availableUnits),
+            'playMoneyBalanceUnits' => $availableUnits,
+            'playMoneyBalanceDisplay' => $this->formatStechenDollar($availableUnits),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyWalletPayload(): array
+    {
+        return [
+            'balanceUnits' => 0,
+            'reservedUnits' => 0,
+            'availableUnits' => 0,
+            'balanceDisplay' => $this->formatStechenDollar(0),
+            'reservedDisplay' => $this->formatStechenDollar(0),
+            'availableDisplay' => $this->formatStechenDollar(0),
+            'primaryDisplay' => $this->formatStechenDollar(0),
+            'playMoneyBalanceUnits' => 0,
+            'playMoneyBalanceDisplay' => $this->formatStechenDollar(0),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentUserParticipation(GameRoom $room, ?User $user): array
+    {
+        if ($user === null) {
+            return $this->emptyParticipationPayload();
+        }
+
+        $roomPlayer = GameRoomPlayer::query()
+            ->where('game_room_id', $room->id)
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                GameRoomPlayer::STATUS_RESERVED,
+                GameRoomPlayer::STATUS_JOINED,
+                GameRoomPlayer::STATUS_READY,
+                GameRoomPlayer::STATUS_PLAYING,
+                GameRoomPlayer::STATUS_FINISHED,
+            ])
+            ->orderByDesc('id')
+            ->first();
+
+        if ($roomPlayer === null) {
+            return $this->emptyParticipationPayload();
+        }
+
+        return [
+            'isParticipating' => in_array($roomPlayer->status, [
+                GameRoomPlayer::STATUS_RESERVED,
+                GameRoomPlayer::STATUS_JOINED,
+                GameRoomPlayer::STATUS_READY,
+                GameRoomPlayer::STATUS_PLAYING,
+            ], true),
+            'status' => $roomPlayer->status,
+            'statusDisplay' => $this->playerStatusDisplay($roomPlayer->status),
+            'seatNumber' => $roomPlayer->seat_number,
+            'reservedUnits' => (int) $roomPlayer->reserved_units,
+            'reservedDisplay' => $this->formatStechenDollar((int) $roomPlayer->reserved_units),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyParticipationPayload(): array
+    {
+        return [
+            'isParticipating' => false,
+            'status' => null,
+            'statusDisplay' => null,
+            'seatNumber' => null,
+            'reservedUnits' => 0,
+            'reservedDisplay' => $this->formatStechenDollar(0),
+        ];
+    }
+
+    private function playerStatusDisplay(string $status): string
+    {
+        return match ($status) {
+            GameRoomPlayer::STATUS_RESERVED => 'Reserviert',
+            GameRoomPlayer::STATUS_JOINED => 'Beigetreten',
+            GameRoomPlayer::STATUS_READY => 'Bereit',
+            GameRoomPlayer::STATUS_PLAYING => 'Spielt',
+            GameRoomPlayer::STATUS_FINISHED => 'Beendet',
+            default => $status,
+        };
     }
 
     private function normalizeNullableString(mixed $value): ?string
@@ -159,6 +363,23 @@ class LobbyRoomBrowserPayloadService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
     }
 
     private function normalizeSelectedRoomCode(?string $selectedRoomCode): ?string

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 
 const props = defineProps({
     rooms: {
@@ -28,14 +28,38 @@ const props = defineProps({
             count: 0,
         }),
     },
+    currentUser: {
+        type: Object,
+        default: () => ({
+            activeParticipationCount: 0,
+            waitingParticipationCount: 0,
+            runningParticipationCount: 0,
+            finishedParticipationCount: 0,
+        }),
+    },
+});
+
+const roomsState = ref([...(props.rooms || [])]);
+const metaState = ref({ ...(props.meta || {}) });
+const currentUserState = ref({ ...(props.currentUser || {}) });
+const selectedRoomCodeState = ref(props.selectedRoomCode || props.selectedRoom?.publicCode || null);
+const actionInProgressCode = ref(null);
+const toasts = ref([]);
+const isPolling = ref(false);
+const pollingError = ref('');
+const lastUpdatedAt = ref(new Date());
+let pollingTimer = null;
+
+const showOnlyTestRoomsFilter = computed(() => {
+    return metaState.value?.phase3LocalTestHarnessEnabled === true;
 });
 
 const roomCount = computed(() => {
-    if (typeof props.meta?.count === 'number') {
-        return props.meta.count;
+    if (typeof metaState.value?.count === 'number') {
+        return metaState.value.count;
     }
 
-    return props.rooms.length;
+    return roomsState.value.length;
 });
 
 const filterState = reactive({
@@ -43,9 +67,17 @@ const filterState = reactive({
     start_mode: props.filters?.start_mode || '',
     buy_in: props.filters?.buy_in || '',
     players: props.filters?.players || '',
+    only_test: Boolean(props.filters?.only_test),
 });
 
-const selectedRoomCodeState = ref(props.selectedRoomCode || props.selectedRoom?.publicCode || null);
+const appliedFilterState = reactive({
+    status: props.filters?.status || '',
+    start_mode: props.filters?.start_mode || '',
+    buy_in: props.filters?.buy_in || '',
+    players: props.filters?.players || '',
+    only_test: Boolean(props.filters?.only_test),
+});
+
 
 const statusOptions = [
     { value: '', label: 'Alle' },
@@ -85,6 +117,7 @@ function lobbyUrl(overrides = {}) {
         start_mode: filterState.start_mode,
         buy_in: filterState.buy_in,
         players: filterState.players,
+        only_test: filterState.only_test ? '1' : '',
         ...overrides,
     };
 
@@ -102,7 +135,7 @@ function lobbyUrl(overrides = {}) {
 const applyFiltersUrl = computed(() => lobbyUrl());
 const resetFiltersUrl = computed(() => '/lobby');
 
-const roomList = computed(() => props.rooms || []);
+const roomList = computed(() => roomsState.value || []);
 
 const selectedRoomDetails = computed(() => {
     if (!selectedRoomCodeState.value) {
@@ -110,6 +143,60 @@ const selectedRoomDetails = computed(() => {
     }
 
     return roomList.value.find((room) => room?.publicCode === selectedRoomCodeState.value) || null;
+});
+
+const selectedRoomParticipation = computed(() => {
+    return selectedRoomDetails.value?.currentUserParticipation || {
+        isParticipating: false,
+        status: null,
+        statusDisplay: null,
+        seatNumber: null,
+        reservedUnits: 0,
+        reservedDisplay: '0 St$',
+    };
+});
+
+const selectedRoomActions = computed(() => {
+    return selectedRoomDetails.value?.actions || {
+        joinUrl: null,
+        leaveUrl: null,
+        playUrl: null,
+        showJoin: false,
+        showLeave: false,
+        showOpenGame: false,
+    };
+});
+
+const selectedRoomActionHint = computed(() => {
+    if (!selectedRoomDetails.value) {
+        return 'Wähle einen Raum aus, um beizutreten oder Details zu sehen.';
+    }
+
+    if (selectedRoomActions.value.showOpenGame) {
+        return 'Der Raum ist gestartet. Du kannst das Spielfenster öffnen.';
+    }
+
+    if (selectedRoomActions.value.showLeave) {
+        return `Du bist auf Platz ${selectedRoomParticipation.value.seatNumber || '-'} dabei. Reserviert: ${selectedRoomParticipation.value.reservedDisplay || '0 St$'}.`;
+    }
+
+    return 'Der Beitritt wird nach dem Klick serverseitig geprüft.';
+});
+
+const actionIsRunning = computed(() => {
+    return selectedRoomDetails.value?.publicCode
+        && actionInProgressCode.value === selectedRoomDetails.value.publicCode;
+});
+
+const participationSummary = computed(() => {
+    const waiting = currentUserState.value?.waitingParticipationCount || 0;
+    const running = currentUserState.value?.runningParticipationCount || 0;
+
+    if (waiting === 0 && running === 0) {
+        return 'Keine aktiven Raumbeitritte.';
+    }
+
+    return `${waiting} Voranmeldung(en), ${running} laufende Teilnahme(n).`;
 });
 
 const detailTitle = computed(() => selectedRoomDetails.value?.name || 'Kein Raum ausgewählt');
@@ -120,6 +207,149 @@ const detailStart = computed(() => selectedRoomDetails.value?.startDisplay || '-
 const detailStatus = computed(() => selectedRoomDetails.value?.statusDisplay || '-');
 const detailPrizePool = computed(() => selectedRoomDetails.value?.prizePoolDisplay || '-');
 const detailFee = computed(() => selectedRoomDetails.value?.feeDisplay || 'Raum auswählen');
+
+const lastUpdatedDisplay = computed(() => {
+    if (!lastUpdatedAt.value) {
+        return '-';
+    }
+
+    return lastUpdatedAt.value.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+});
+
+function dismissToast(id) {
+    toasts.value = toasts.value.filter((toast) => toast.id !== id);
+}
+
+function pushToast(type, message) {
+    if (!message) {
+        return;
+    }
+
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    toasts.value = [
+        ...toasts.value,
+        {
+            id,
+            type,
+            message,
+        },
+    ];
+
+    window.setTimeout(() => {
+        dismissToast(id);
+    }, 4500);
+}
+
+function dispatchWalletUpdated(payload) {
+    const wallet = payload?.currentUser?.wallet;
+
+    if (!wallet) {
+        return;
+    }
+
+    window.dispatchEvent(new CustomEvent('stechen:wallet-updated', {
+        detail: wallet,
+    }));
+}
+
+function currentFilterParams() {
+    return {
+        status: appliedFilterState.status || undefined,
+        start_mode: appliedFilterState.start_mode || undefined,
+        buy_in: appliedFilterState.buy_in || undefined,
+        players: appliedFilterState.players || undefined,
+        only_test: appliedFilterState.only_test ? '1' : undefined,
+        room: selectedRoomCodeState.value || undefined,
+    };
+}
+
+function applyLobbyPayload(payload) {
+    if (!payload) {
+        return;
+    }
+
+    roomsState.value = [...(payload.rooms || [])];
+    metaState.value = { ...(payload.meta || {}) };
+    currentUserState.value = { ...(payload.currentUser || {}) };
+    selectedRoomCodeState.value = payload.selectedRoomCode || payload.selectedRoom?.publicCode || selectedRoomCodeState.value;
+    dispatchWalletUpdated(payload);
+}
+
+async function refreshLobbyRooms({ silent = true } = {}) {
+    if (isPolling.value || actionInProgressCode.value) {
+        return;
+    }
+
+    isPolling.value = true;
+
+    try {
+        const response = await window.axios.get('/lobby/rooms', {
+            params: currentFilterParams(),
+        });
+
+        applyLobbyPayload(response.data);
+        lastUpdatedAt.value = new Date();
+        pollingError.value = '';
+    } catch (error) {
+        pollingError.value = 'Aktualisierung kurzzeitig nicht möglich.';
+
+        if (!silent) {
+            pushToast('error', pollingError.value);
+        }
+    } finally {
+        isPolling.value = false;
+    }
+}
+
+async function postRoomAction(url, fallbackErrorMessage) {
+    if (!url || !selectedRoomDetails.value?.publicCode) {
+        return;
+    }
+
+    actionInProgressCode.value = selectedRoomDetails.value.publicCode;
+
+    try {
+        const response = await window.axios.post(url, {}, {
+            params: currentFilterParams(),
+        });
+
+        applyLobbyPayload(response.data?.lobby);
+        pushToast('success', response.data?.message || 'Aktion wurde ausgeführt.');
+    } catch (error) {
+        applyLobbyPayload(error?.response?.data?.lobby);
+        pushToast('error', error?.response?.data?.message || fallbackErrorMessage);
+    } finally {
+        actionInProgressCode.value = null;
+    }
+}
+
+function joinSelectedRoom() {
+    postRoomAction(
+        selectedRoomActions.value.joinUrl,
+        'Der Raum konnte nicht betreten werden.',
+    );
+}
+
+function leaveSelectedRoom() {
+    postRoomAction(
+        selectedRoomActions.value.leaveUrl,
+        'Der Raum konnte nicht verlassen werden.',
+    );
+}
+
+function openSelectedGame() {
+    if (!selectedRoomActions.value.playUrl) {
+        return;
+    }
+
+    const roomCode = selectedRoomDetails.value?.publicCode || 'unknown';
+    window.open(selectedRoomActions.value.playUrl, `stechen-game-${roomCode}`);
+}
 
 function roomIsSelected(room) {
     return Boolean(selectedRoomCodeState.value) && room?.publicCode === selectedRoomCodeState.value;
@@ -146,10 +376,48 @@ function rowAriaLabel(room) {
 
     return `Details zu ${room.name} anzeigen`;
 }
+
+onMounted(() => {
+    pollingTimer = window.setInterval(() => {
+        refreshLobbyRooms();
+    }, 3000);
+});
+
+onUnmounted(() => {
+    if (pollingTimer !== null) {
+        window.clearInterval(pollingTimer);
+        pollingTimer = null;
+    }
+});
 </script>
 
 <template>
-    <section class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden" aria-label="Lobby-Raumbrowser">
+    <section class="relative flex min-h-0 flex-1 flex-col gap-3 overflow-hidden" aria-label="Lobby-Raumbrowser">
+        <div class="pointer-events-none fixed right-6 top-6 z-50 flex w-full max-w-sm flex-col gap-3">
+            <div
+                v-for="toast in toasts"
+                :key="toast.id"
+                class="pointer-events-auto rounded-2xl border px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur"
+                :class="toast.type === 'error'
+                    ? 'border-red-400/40 bg-red-950/90 text-red-100'
+                    : 'border-emerald-400/40 bg-emerald-950/90 text-emerald-100'"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-bold leading-5">
+                        {{ toast.message }}
+                    </p>
+
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-lg px-2 py-0.5 text-lg leading-none opacity-70 transition hover:bg-white/10 hover:opacity-100"
+                        aria-label="Meldung schließen"
+                        @click="dismissToast(toast.id)"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+        </div>
         <section class="grid h-[250px] shrink-0 items-stretch gap-3 overflow-hidden lg:grid-cols-2">
             <article class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-3 shadow-2xl shadow-black/20">
                 <div class="flex items-start justify-between gap-4">
@@ -221,6 +489,23 @@ function rowAriaLabel(room) {
                                 </option>
                             </select>
                         </label>
+
+                        <label
+                            v-if="showOnlyTestRoomsFilter"
+                            class="flex items-center gap-3 sm:col-span-2"
+                        >
+                            <input
+                                v-model="filterState.only_test"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-slate-700 bg-slate-950 text-amber-400 focus:ring-amber-400"
+                            >
+                            <span class="text-xs font-black uppercase tracking-wide text-amber-300">
+                                Nur Testräume anzeigen
+                            </span>
+                            <span class="text-xs text-slate-500">
+                                Kombiniert mit allen aktiven Filtern.
+                            </span>
+                        </label>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -256,8 +541,13 @@ function rowAriaLabel(room) {
                         </p>
                     </div>
 
-                    <span class="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">
-                        vorbereitet
+                    <span
+                        class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                        :class="selectedRoomParticipation.isParticipating
+                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'"
+                    >
+                        {{ selectedRoomParticipation.isParticipating ? 'Dabei' : 'vorbereitet' }}
                     </span>
                 </div>
 
@@ -312,18 +602,49 @@ function rowAriaLabel(room) {
                         </dl>
                     </div>
 
-                    <div class="mt-2 shrink-0 flex flex-wrap items-center justify-between gap-3">
-                        <p class="text-xs leading-5 text-slate-500">
-                            Beitritt, Reservierung und Spielstart folgen später.
-                        </p>
+                    <div class="mt-2 shrink-0 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs leading-5 text-slate-500">
+                                    {{ selectedRoomActionHint }}
+                                </p>
+                                <p class="mt-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-600">
+                                    {{ participationSummary }}
+                                </p>
+                            </div>
 
-                        <button
-                            type="button"
-                            class="cursor-not-allowed rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-500 opacity-70"
-                            disabled
-                        >
-                            Beitreten
-                        </button>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-if="selectedRoomDetails && selectedRoomActions.showJoin"
+                                    type="button"
+                                    class="rounded-xl bg-amber-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-300 disabled:cursor-wait disabled:opacity-70"
+                                    :disabled="actionIsRunning"
+                                    @click="joinSelectedRoom"
+                                >
+                                    {{ actionIsRunning ? 'Prüfe...' : 'Beitreten' }}
+                                </button>
+
+                                <button
+                                    v-if="selectedRoomDetails && selectedRoomActions.showLeave"
+                                    type="button"
+                                    class="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-black text-red-200 transition hover:border-red-300 hover:text-red-100 disabled:cursor-wait disabled:opacity-70"
+                                    :disabled="actionIsRunning"
+                                    @click="leaveSelectedRoom"
+                                >
+                                    {{ actionIsRunning ? 'Verlasse...' : 'Raum verlassen' }}
+                                </button>
+
+                                <button
+                                    v-if="selectedRoomDetails && selectedRoomActions.showOpenGame"
+                                    type="button"
+                                    class="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
+                                    @click="openSelectedGame"
+                                >
+                                    Spiel öffnen
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </aside>
@@ -377,7 +698,9 @@ function rowAriaLabel(room) {
                                     class="cursor-pointer transition focus-within:bg-slate-900/80"
                                     :class="roomIsSelected(room)
                                         ? 'bg-amber-400/10 outline outline-1 -outline-offset-1 outline-amber-400/50'
-                                        : 'bg-slate-950/20 hover:bg-slate-900/80'"
+                                        : room.currentUserParticipation?.isParticipating
+                                            ? 'bg-emerald-400/10 outline outline-1 -outline-offset-1 outline-emerald-400/25 hover:bg-emerald-400/15'
+                                            : 'bg-slate-950/20 hover:bg-slate-900/80'"
                                 >
                                     <td class="px-4 py-2">
                                         <a
@@ -386,6 +709,18 @@ function rowAriaLabel(room) {
                                             :aria-label="rowAriaLabel(room)"
                                         >
                                             <span class="truncate font-black text-slate-100">{{ room.name }}</span>
+                                            <span
+                                                v-if="room.currentUserParticipation?.isParticipating"
+                                                class="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-emerald-300"
+                                            >
+                                                Dabei
+                                            </span>
+                                            <span
+                                                v-if="room.isTest"
+                                                class="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-amber-300"
+                                            >
+                                                Test
+                                            </span>
                                             <span class="shrink-0 font-mono text-[0.62rem] text-slate-600">{{ room.publicCode }}</span>
                                         </a>
                                     </td>
@@ -455,7 +790,16 @@ function rowAriaLabel(room) {
                 </div>
 
                 <div class="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-500">
-                    &gt; Nachricht...
+                    <p>
+                        Letztes Update:
+                        <span class="font-black text-slate-300">{{ lastUpdatedDisplay }}</span>
+                    </p>
+                    <p
+                        class="mt-1 font-semibold"
+                        :class="pollingError ? 'text-red-300' : 'text-slate-400'"
+                    >
+                        {{ pollingError || (isPolling ? 'Aktualisiere...' : 'Polling aktiv') }}
+                    </p>
                 </div>
             </aside>
         </section>
