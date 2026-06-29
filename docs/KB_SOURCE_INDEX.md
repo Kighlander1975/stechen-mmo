@@ -48,6 +48,7 @@ docs\ROADMAP.md
 docs\GAME_RULES.md
 docs\PHASE_3_WALLET_BUYIN_AND_LOBBY.md
 docs\phase-3-game-room-creation.md
+docs\PHASE_3_ROOM_LIFECYCLE_SERVICES.md
 docs\reward-room-economy-planning.md
 docs\lobby-room-browser-vue-state.md
 docs\FRONTEND_VUE_ISLANDS.md
@@ -64,6 +65,7 @@ Diese Dateien gelten als primäre Quelle für:
 - Roadmap
 - Spielregeln
 - Phase 3 Wallet, Buy-in, Lobby und Raumversorgung
+- Raum-Lifecycle, Raumbeitritt, Leave, Cancel, Startprüfung, Countdown und Teilnahmelimits
 - Raum-Lifecycle und systemseitige Raumerzeugung
 - Reward-, Rake- und Raumökonomie
 - aktuellen Lobby-Raumbrowser mit Vue-Island
@@ -127,6 +129,12 @@ Der aktuelle Stand wurde gegen Projektdateien und vorhandene Tests plausibilisie
 - Wallets haben balance_units und reserved_units.
 - LedgerEntry und WalletService unterstützen Reservieren und Freigeben reservierter Einheiten.
 - WalletService nutzt Transaktionen, Idempotency und lockForUpdate.
+- GameRoomEligibilityService existiert als fachliche Vorprüfung für Raumbeitritte.
+- GameRoomJoinService existiert für atomaren Raumbeitritt mit Buy-in-Reservierung.
+- GameRoomLeaveService existiert für freiwilliges Verlassen wartender Räume und Freigabe reservierter Buy-ins.
+- GameRoomCancellationService existiert für systemseitigen oder administrativen Raumabbruch vor Spielstart.
+- Join-, Leave- und Cancel-Services arbeiten transaktional und servicebasiert.
+- Vorstart-Teilnahmen können operativ gelöscht werden, während die finanzielle Historie im Ledger erhalten bleibt.
 - GameRoomSupplyService erzeugt systemseitig Sit'n'Go-Räume.
 - Raumversorgung berücksichtigt verfügbare Wallets.
 - Ein lokaler/testing Override für Raumversorgung ohne Wallet-Eignung existiert.
@@ -143,8 +151,13 @@ Diese Punkte sind für die nächsten Implementierungen vorgemerkt und dürfen ni
 - zuerst startender Raum übernimmt Führung;
 - automatische Entfernung aus anderen wartenden Räumen;
 - 1:1-Freigabe anderer Buy-in-Reservierungen;
-- Startphase 5 bis 10 Sekunden;
+- Startphase mit festem MVP-Countdown von 10 Sekunden;
+- `starting_at` für Gewinnerregel bei konkurrierenden Starts;
+- `starts_at` für UI-Countdown und Startfinalisierung;
 - Konfliktlösung per Startphasen-Zeitstempel;
+- maximal 3 wartende Räume pro Spieler;
+- maximal 1 aktiver/startender/laufender Raum pro Spieler;
+- spätere zentrale Config `config/game_rooms.php` für Countdown und Teilnahmelimits;
 - Abbruch oder Rücksetzung konkurrierender Räume;
 - UI-Hinweis bei nicht startendem Raum;
 - Chat nachgelagert;
@@ -153,23 +166,28 @@ Diese Punkte sind für die nächsten Implementierungen vorgemerkt und dürfen ni
 
 ### Nächster Implementierungsblock
 
-Der nächste technische Block sollte voraussichtlich lauten:
+Der nächste technische Block sollte voraussichtlich in dieser Reihenfolge laufen:
 
 ```text
-Room Join, Buy-in Reservation und Startphase
+Cancelled-Room-Cleanup, Startphase/StartCoordinator und danach UI-/Controller-Integration
 ```
 
 Wahrscheinliche Bausteine:
 
 ```text
-- PlayerEligibilityService oder vergleichbare Policy-/Gate-Struktur;
-- GameRoomJoinService für atomaren Raumbeitritt;
-- Nutzung von WalletService::reserveUnits für Buy-in-Reservierungen;
-- GameRoomLeaveService oder ReservationReleaseService für Freigaben;
-- Datenbank-Constraints gegen doppelte aktive Teilnahme im selben Raum;
-- Startphasen-Modellierung, ggf. GameRoom::STATUS_STARTING oder separate Startphasen-Felder;
-- Start-Koordinator für Konflikte zwischen mehreren startbereiten Räumen;
-- Tests für Mehrfach-Vorstart, zu wenig Guthaben, doppelte Teilnahme, Reservierungsfreigabe und Startkonflikte.
+- Cleanup-Konzept und späterer Cleanup-Service für cancelled rooms;
+- sichere Löschung nur für alte cancelled rooms ohne verbliebene GameRoomPlayer;
+- keine Löschung von Ledger-Einträgen;
+- Config `config/game_rooms.php` für Start-Countdown und Teilnahmelimits;
+- Startphasen-Modellierung mit GameRoom::STATUS_STARTING;
+- Startphasen-Felder `starting_at` und `starts_at`;
+- StartCoordinator für Countdown, Konflikte und Finalisierung;
+- Konfliktregel: älteres `starting_at` gewinnt, Tie-Breaker kleinere Raum-ID;
+- Teilnahmelimit: maximal 3 wartende Räume pro Spieler;
+- Aktivlimit: maximal 1 starting/running Raum pro Spieler;
+- Buy-in-Capture beim tatsächlichen Spielstart;
+- danach Controller-/UI-Integration für Join, Leave, Cancel, Countdown und Room-Browser-Status;
+- Tests für Mehrfach-Vorstart, Teilnahmelimits, Startkonflikte, Reservierungsfreigabe, Countdown und Startfinalisierung.
 ```
 
 ---
