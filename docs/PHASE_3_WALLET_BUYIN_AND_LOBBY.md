@@ -1388,5 +1388,15 @@ Collusion- und Abuse-Erkennung wird architektonisch vorbereitet, aber nicht als 
 
 Gleiche IP-Adressen im selben Raum sind ein Risiko-Signal, aber kein alleiniger Beweis für Missbrauch.
 
+## Hinweis zu `game_room_players.rake_units`
 
+`game_room_players.rake_units` bleibt in Phase 3 vorerst als Kompatibilitäts- und Historienfeld bestehen.
 
+Die aktuelle Phase-3-Logik verwendet room-based Rake:
+
+- Beim Raumbeitritt wird nur das Buy-in des Spielers reserviert.
+- Der Player-Level-Rake bleibt für neue Teilnahmen `0`.
+- Der tatsächliche Rake wird beim Spielstart raumbasiert berechnet.
+- Die Rake-Buchung läuft über das Rake-Wallet und den Ledger.
+
+Vor dem Produktiv-Gehen beziehungsweise vor einer Nicht-Beta-Version soll geprüft werden, ob `game_room_players.rake_units` vollständig entfernt, final migriert oder weiterhin als historisches Kompatibilitätsfeld behalten wird.

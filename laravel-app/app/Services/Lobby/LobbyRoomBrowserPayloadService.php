@@ -166,7 +166,7 @@ class LobbyRoomBrowserPayloadService
             'rakePercentDisplay' => number_format($room->rake_basis_points / 100, 2, ',', '.').' %',
             'prizePoolUnits' => $prizePoolUnits,
             'prizePoolDisplay' => $this->formatStechenDollar($prizePoolUnits),
-            'feeDisplay' => 'abzgl. '.number_format($room->rake_basis_points / 100, 2, ',', '.').' % Gebühr',
+            'feeDisplay' => 'Rake ('.number_format($room->rake_basis_points / 100, 2, ',', '.').' %) bereits entnommen',
             'buyInCategory' => $this->buyInCategory($room->buy_in_units),
             'playerCategory' => $this->playerCategory($room->max_players),
             'currentUserParticipation' => $participation,

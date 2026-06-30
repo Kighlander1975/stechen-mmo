@@ -462,7 +462,7 @@ class GameRoomLobbyTest extends TestCase
                     && ($props['selectedRoomVisible'] ?? null) === true
                     && ($props['selectedRoom']['publicCode'] ?? null) === 'ROOM-VIEW-PROPS'
                     && ($props['selectedRoom']['prizePoolDisplay'] ?? null) === '3.920 St$'
-                    && ($props['selectedRoom']['feeDisplay'] ?? null) === 'abzgl. 2,00 % Gebühr'
+                    && ($props['selectedRoom']['feeDisplay'] ?? null) === 'Rake (2,00 %) bereits entnommen'
                     && ($props['rooms'][0]['publicCode'] ?? null) === 'ROOM-VIEW-PROPS'
                     && ($props['rooms'][0]['buyInDisplay'] ?? null) === '1.000 St$';
             });
@@ -632,7 +632,7 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('Vue Detail Tisch')
             ->assertSee('ROOM-VUE-DETAIL', false)
             ->assertSee('7.800 St$', false)
-            ->assertSee('abzgl. 2,50 % Gebühr', false);
+            ->assertSee('Rake (2,50 %) bereits entnommen', false);
     }
 
     public function test_guest_is_redirected_from_lobby_rooms_api_to_login(): void
@@ -683,7 +683,7 @@ class GameRoomLobbyTest extends TestCase
             ->assertJsonPath('rooms.0.startDisplay', 'Wenn voll')
             ->assertJsonPath('rooms.0.statusDisplay', 'Offen')
             ->assertJsonPath('rooms.0.prizePoolDisplay', '98 St$')
-            ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
+            ->assertJsonPath('rooms.0.feeDisplay', 'Rake (2,00 %) bereits entnommen');
     }
 
     public function test_lobby_rooms_api_uses_minimum_rake_for_prize_pool_display(): void
@@ -711,7 +711,7 @@ class GameRoomLobbyTest extends TestCase
             ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-MIN-RAKE')
             ->assertJsonPath('rooms.0.buyInDisplay', '5 St$')
             ->assertJsonPath('rooms.0.prizePoolDisplay', '9 St$')
-            ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
+            ->assertJsonPath('rooms.0.feeDisplay', 'Rake (2,00 %) bereits entnommen');
     }
 
     public function test_lobby_rooms_api_returns_starting_room_timing_payload(): void
@@ -941,7 +941,7 @@ class GameRoomLobbyTest extends TestCase
                 && ($props['selectedRoom']['name'] ?? null) === 'Berlin (2)'
                 && ($props['selectedRoom']['buyInDisplay'] ?? null) === '50 St$'
                 && ($props['selectedRoom']['prizePoolDisplay'] ?? null) === '98 St$'
-                && ($props['selectedRoom']['feeDisplay'] ?? null) === 'abzgl. 2,00 % Gebühr'
+                && ($props['selectedRoom']['feeDisplay'] ?? null) === 'Rake (2,00 %) bereits entnommen'
                 && ($props['selectedRoom']['startDisplay'] ?? null) === 'Wenn voll';
         });
     }
