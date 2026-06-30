@@ -11,6 +11,8 @@ use RuntimeException;
 
 class GameRoomJoinService
 {
+    private const MAX_WAITING_PARTICIPATIONS_PER_USER = 3;
+
     public function __construct(
         private readonly GameRoomEligibilityService $eligibilityService,
         private readonly WalletService $walletService,
@@ -45,6 +47,8 @@ class GameRoomJoinService
                 return $existingActivePlayer;
             }
 
+            $this->ensureUserCanJoinAnotherRoom($user, $lockedRoom);
+
             $activePlayerCount = $lockedRoom->activePlayers()->count();
 
             if ($activePlayerCount >= $lockedRoom->max_players) {
@@ -58,8 +62,8 @@ class GameRoomJoinService
             }
 
             $buyInUnits = (int) $lockedRoom->buy_in_units;
-            $rakeUnits = $this->calculateRakeUnits($buyInUnits, (int) $lockedRoom->rake_basis_points);
-            $reservedUnits = $buyInUnits + $rakeUnits;
+            $rakeUnits = 0;
+            $reservedUnits = $buyInUnits;
 
             $roomPlayer = GameRoomPlayer::query()->create([
                 'game_room_id' => $lockedRoom->id,
@@ -109,18 +113,38 @@ class GameRoomJoinService
         });
     }
 
-    public function calculateRakeUnits(int $buyInUnits, int $rakeBasisPoints): int
-    {
-        if ($buyInUnits <= 0 || $rakeBasisPoints <= 0) {
-            return 0;
-        }
-
-        return intdiv($buyInUnits * $rakeBasisPoints, 10_000);
-    }
-
     public function reserveIdempotencyKey(GameRoomPlayer $roomPlayer): string
     {
         return 'game-room-player:'.$roomPlayer->id.':reserve';
+    }
+
+    private function ensureUserCanJoinAnotherRoom(User $user, GameRoom $room): void
+    {
+        $hasRunningParticipation = GameRoomPlayer::query()
+            ->where('user_id', $user->id)
+            ->where('game_room_id', '!=', $room->id)
+            ->where('status', GameRoomPlayer::STATUS_PLAYING)
+            ->lockForUpdate()
+            ->exists();
+
+        if ($hasRunningParticipation) {
+            throw new RuntimeException('User already has a running game room participation.');
+        }
+
+        $waitingParticipationCount = GameRoomPlayer::query()
+            ->where('user_id', $user->id)
+            ->where('game_room_id', '!=', $room->id)
+            ->whereIn('status', [
+                GameRoomPlayer::STATUS_RESERVED,
+                GameRoomPlayer::STATUS_JOINED,
+                GameRoomPlayer::STATUS_READY,
+            ])
+            ->lockForUpdate()
+            ->count();
+
+        if ($waitingParticipationCount >= self::MAX_WAITING_PARTICIPATIONS_PER_USER) {
+            throw new RuntimeException('User already has the maximum number of waiting game room participations.');
+        }
     }
 
     private function firstFreeSeatNumber(GameRoom $room): ?int

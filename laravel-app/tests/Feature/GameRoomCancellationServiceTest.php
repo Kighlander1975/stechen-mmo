@@ -35,8 +35,8 @@ class GameRoomCancellationServiceTest extends TestCase
         $firstRoomPlayer = app(GameRoomJoinService::class)->join($firstUser, $room);
         $secondRoomPlayer = app(GameRoomJoinService::class)->join($secondUser, $room->fresh());
 
-        $this->assertSame(102, $firstWallet->fresh()->reserved_units);
-        $this->assertSame(102, $secondWallet->fresh()->reserved_units);
+        $this->assertSame(100, $firstWallet->fresh()->reserved_units);
+        $this->assertSame(100, $secondWallet->fresh()->reserved_units);
         $this->assertSame(2, GameRoomPlayer::query()->count());
 
         $cancelledCount = app(GameRoomCancellationService::class)->cancelRoom(
@@ -58,7 +58,7 @@ class GameRoomCancellationServiceTest extends TestCase
             'user_id' => $firstUser->id,
             'entry_type' => LedgerEntry::TYPE_RELEASE,
             'direction' => LedgerEntry::DIRECTION_CREDIT,
-            'amount_units' => 102,
+            'amount_units' => 100,
             'reserved_after_units' => 0,
             'idempotency_key' => 'game-room-player:'.$firstRoomPlayer->id.':cancel-release',
             'reference_type' => GameRoom::class,
@@ -70,7 +70,7 @@ class GameRoomCancellationServiceTest extends TestCase
             'user_id' => $secondUser->id,
             'entry_type' => LedgerEntry::TYPE_RELEASE,
             'direction' => LedgerEntry::DIRECTION_CREDIT,
-            'amount_units' => 102,
+            'amount_units' => 100,
             'reserved_after_units' => 0,
             'idempotency_key' => 'game-room-player:'.$secondRoomPlayer->id.':cancel-release',
             'reference_type' => GameRoom::class,
@@ -87,8 +87,8 @@ class GameRoomCancellationServiceTest extends TestCase
         $this->assertSame($firstRoomPlayer->id, $releaseEntry->metadata['game_room_player_id']);
         $this->assertSame(1, $releaseEntry->metadata['seat_number']);
         $this->assertSame(100, $releaseEntry->metadata['buy_in_units']);
-        $this->assertSame(2, $releaseEntry->metadata['rake_units']);
-        $this->assertSame(102, $releaseEntry->metadata['released_units']);
+        $this->assertSame(0, $releaseEntry->metadata['rake_units']);
+        $this->assertSame(100, $releaseEntry->metadata['released_units']);
     }
 
     public function test_cancel_full_room_marks_room_cancelled_instead_of_open(): void
@@ -327,3 +327,4 @@ class GameRoomCancellationServiceTest extends TestCase
         ], $overrides));
     }
 }
+

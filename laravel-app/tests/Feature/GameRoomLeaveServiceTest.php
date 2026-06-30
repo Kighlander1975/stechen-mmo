@@ -29,7 +29,7 @@ class GameRoomLeaveServiceTest extends TestCase
 
         $roomPlayer = app(GameRoomJoinService::class)->join($user, $room);
 
-        $this->assertSame(102, $wallet->fresh()->reserved_units);
+        $this->assertSame(100, $wallet->fresh()->reserved_units);
 
         $left = app(GameRoomLeaveService::class)->leave($user, $room, GameRoomLeaveService::REASON_USER_REQUESTED);
 
@@ -46,7 +46,7 @@ class GameRoomLeaveServiceTest extends TestCase
             'user_id' => $user->id,
             'entry_type' => LedgerEntry::TYPE_RELEASE,
             'direction' => LedgerEntry::DIRECTION_CREDIT,
-            'amount_units' => 102,
+            'amount_units' => 100,
             'balance_after_units' => 1_000,
             'reserved_after_units' => 0,
             'idempotency_key' => 'game-room-player:'.$roomPlayer->id.':release',
@@ -64,8 +64,8 @@ class GameRoomLeaveServiceTest extends TestCase
         $this->assertSame($roomPlayer->id, $releaseEntry->metadata['game_room_player_id']);
         $this->assertSame(1, $releaseEntry->metadata['seat_number']);
         $this->assertSame(100, $releaseEntry->metadata['buy_in_units']);
-        $this->assertSame(2, $releaseEntry->metadata['rake_units']);
-        $this->assertSame(102, $releaseEntry->metadata['released_units']);
+        $this->assertSame(0, $releaseEntry->metadata['rake_units']);
+        $this->assertSame(100, $releaseEntry->metadata['released_units']);
     }
 
     public function test_leave_turns_full_room_back_to_open(): void

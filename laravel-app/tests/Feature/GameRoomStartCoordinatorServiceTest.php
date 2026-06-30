@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\GameRoom;
 use App\Models\GameRoomPlayer;
+use App\Models\LedgerEntry;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\GameRooms\GameRoomStartCoordinatorService;
+use App\Services\WalletService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -171,6 +173,134 @@ class GameRoomStartCoordinatorServiceTest extends TestCase
             ->count());
     }
 
+    public function test_finalize_start_commits_player_buy_ins_and_credits_room_rake(): void
+    {
+        $startsAt = CarbonImmutable::parse('2026-06-29 10:45:10');
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-06-29 10:45:11'));
+
+        $room = $this->createRoom([
+            'status' => GameRoom::STATUS_STARTING,
+            'buy_in_units' => 1_000,
+            'max_players' => 2,
+            'starting_at' => $startsAt->subSeconds(10),
+            'starts_at' => $startsAt,
+            'rake_basis_points' => 200,
+        ]);
+
+        $firstPlayer = $this->createFundedReservedRoomPlayer($room, 1, 1_000, 5_000);
+        $secondPlayer = $this->createFundedReservedRoomPlayer($room, 2, 1_000, 5_000);
+
+        $finalized = app(GameRoomStartCoordinatorService::class)->finalizeStartIfDue($room);
+
+        $this->assertTrue($finalized);
+        $this->assertSame(GameRoom::STATUS_RUNNING, $room->fresh()->status);
+
+        $this->assertSame(4_000, $firstPlayer->user->wallets()->firstOrFail()->fresh()->balance_units);
+        $this->assertSame(0, $firstPlayer->user->wallets()->firstOrFail()->fresh()->reserved_units);
+        $this->assertSame(4_000, $secondPlayer->user->wallets()->firstOrFail()->fresh()->balance_units);
+        $this->assertSame(0, $secondPlayer->user->wallets()->firstOrFail()->fresh()->reserved_units);
+
+        $this->assertSame(2, LedgerEntry::query()
+            ->where('entry_type', LedgerEntry::TYPE_COMMIT)
+            ->where('reference_type', GameRoom::class)
+            ->where('reference_id', $room->id)
+            ->count());
+
+        $rakeWallet = Wallet::query()
+            ->where('wallet_type', Wallet::TYPE_RAKE)
+            ->where('asset_type', Wallet::ASSET_PLAY_MONEY)
+            ->where('currency_code', Wallet::CURRENCY_STECHEN_DOLLAR)
+            ->firstOrFail();
+
+        $this->assertSame(40, $rakeWallet->balance_units);
+        $this->assertSame(0, $rakeWallet->reserved_units);
+
+        $this->assertDatabaseHas('ledger_entries', [
+            'wallet_id' => $rakeWallet->id,
+            'user_id' => null,
+            'entry_type' => LedgerEntry::TYPE_RAKE,
+            'direction' => LedgerEntry::DIRECTION_CREDIT,
+            'amount_units' => 40,
+            'balance_after_units' => 40,
+            'reserved_after_units' => 0,
+            'idempotency_key' => 'game-room:'.$room->id.':start-rake',
+            'reference_type' => GameRoom::class,
+            'reference_id' => $room->id,
+        ]);
+    }
+
+    public function test_finalize_start_does_not_credit_rake_below_minimum_gross_prize_pool(): void
+    {
+        $startsAt = CarbonImmutable::parse('2026-06-29 10:45:10');
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-06-29 10:45:11'));
+
+        $room = $this->createRoom([
+            'status' => GameRoom::STATUS_STARTING,
+            'buy_in_units' => 4,
+            'max_players' => 2,
+            'starting_at' => $startsAt->subSeconds(10),
+            'starts_at' => $startsAt,
+            'rake_basis_points' => 200,
+        ]);
+
+        $this->createFundedReservedRoomPlayer($room, 1, 4, 100);
+        $this->createFundedReservedRoomPlayer($room, 2, 4, 100);
+
+        $finalized = app(GameRoomStartCoordinatorService::class)->finalizeStartIfDue($room);
+
+        $this->assertTrue($finalized);
+        $this->assertSame(GameRoom::STATUS_RUNNING, $room->fresh()->status);
+
+        $this->assertSame(0, Wallet::query()
+            ->where('wallet_type', Wallet::TYPE_RAKE)
+            ->count());
+
+        $this->assertSame(0, LedgerEntry::query()
+            ->where('entry_type', LedgerEntry::TYPE_RAKE)
+            ->count());
+    }
+
+    public function test_finalize_start_does_not_duplicate_commit_or_rake_when_called_again(): void
+    {
+        $startsAt = CarbonImmutable::parse('2026-06-29 10:45:10');
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-06-29 10:45:11'));
+
+        $room = $this->createRoom([
+            'status' => GameRoom::STATUS_STARTING,
+            'buy_in_units' => 1_000,
+            'max_players' => 2,
+            'starting_at' => $startsAt->subSeconds(10),
+            'starts_at' => $startsAt,
+            'rake_basis_points' => 200,
+        ]);
+
+        $this->createFundedReservedRoomPlayer($room, 1, 1_000, 5_000);
+        $this->createFundedReservedRoomPlayer($room, 2, 1_000, 5_000);
+
+        $service = app(GameRoomStartCoordinatorService::class);
+
+        $this->assertTrue($service->finalizeStartIfDue($room));
+        $this->assertTrue($service->finalizeStartIfDue($room->fresh()));
+
+        $this->assertSame(2, LedgerEntry::query()
+            ->where('entry_type', LedgerEntry::TYPE_COMMIT)
+            ->where('reference_type', GameRoom::class)
+            ->where('reference_id', $room->id)
+            ->count());
+
+        $this->assertSame(1, LedgerEntry::query()
+            ->where('entry_type', LedgerEntry::TYPE_RAKE)
+            ->where('reference_type', GameRoom::class)
+            ->where('reference_id', $room->id)
+            ->count());
+
+        $rakeWallet = Wallet::query()
+            ->where('wallet_type', Wallet::TYPE_RAKE)
+            ->firstOrFail();
+
+        $this->assertSame(40, $rakeWallet->balance_units);
+    }
+
     public function test_finalize_start_is_idempotent_for_already_running_room(): void
     {
         $room = $this->createRoom([
@@ -253,6 +383,47 @@ class GameRoomStartCoordinatorServiceTest extends TestCase
         ], $overrides));
     }
 
+    private function createFundedReservedRoomPlayer(
+        GameRoom $room,
+        int $seatNumber,
+        int $buyInUnits,
+        int $balanceUnits,
+        string $status = GameRoomPlayer::STATUS_RESERVED,
+    ): GameRoomPlayer {
+        $user = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $walletService = app(WalletService::class);
+        $grantEntry = $walletService->grantPlayMoney(
+            user: $user,
+            amountUnits: $balanceUnits,
+            idempotencyKey: 'start-test-grant-'.$room->id.'-'.$seatNumber,
+        );
+
+        $roomPlayer = GameRoomPlayer::query()->create([
+            'game_room_id' => $room->id,
+            'user_id' => $user->id,
+            'status' => $status,
+            'seat_number' => $seatNumber,
+            'buy_in_units' => $buyInUnits,
+            'rake_units' => 0,
+            'reserved_units' => $buyInUnits,
+            'joined_at' => now(),
+            'left_at' => null,
+        ]);
+
+        $walletService->reserveUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: $buyInUnits,
+            idempotencyKey: 'start-test-reserve-'.$roomPlayer->id,
+            referenceType: GameRoom::class,
+            referenceId: $room->id,
+        );
+
+        return $roomPlayer->fresh(['user']) ?? $roomPlayer;
+    }
+
     private function createRoomPlayer(
         GameRoom $room,
         int $seatNumber,
@@ -262,7 +433,14 @@ class GameRoomStartCoordinatorServiceTest extends TestCase
             'account_type' => User::ACCOUNT_TYPE_PLAYER,
         ]);
 
-        return GameRoomPlayer::query()->create([
+        $walletService = app(WalletService::class);
+        $grantEntry = $walletService->grantPlayMoney(
+            user: $user,
+            amountUnits: 1_000,
+            idempotencyKey: 'start-helper-grant-'.$room->id.'-'.$seatNumber,
+        );
+
+        $roomPlayer = GameRoomPlayer::query()->create([
             'game_room_id' => $room->id,
             'user_id' => $user->id,
             'status' => $status,
@@ -273,5 +451,15 @@ class GameRoomStartCoordinatorServiceTest extends TestCase
             'joined_at' => now(),
             'left_at' => null,
         ]);
+
+        $walletService->reserveUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: 100,
+            idempotencyKey: 'start-helper-reserve-'.$roomPlayer->id,
+            referenceType: GameRoom::class,
+            referenceId: $room->id,
+        );
+
+        return $roomPlayer;
     }
 }

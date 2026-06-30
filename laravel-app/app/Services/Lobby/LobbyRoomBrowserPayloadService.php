@@ -163,7 +163,7 @@ class LobbyRoomBrowserPayloadService
                 'joinUrl' => route('lobby.rooms.join', ['publicCode' => $room->public_code]),
                 'leaveUrl' => route('lobby.rooms.leave', ['publicCode' => $room->public_code]),
                 'playUrl' => route('game.play', ['publicCode' => $room->public_code]),
-                'showJoin' => ! $participation['isParticipating'],
+                'showJoin' => ! $participation['isParticipating'] && $room->isOpen(),
                 'showLeave' => $participation['isParticipating']
                     && in_array($room->status, [GameRoom::STATUS_OPEN, GameRoom::STATUS_FULL], true)
                     && in_array($participation['status'], [

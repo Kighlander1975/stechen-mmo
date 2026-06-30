@@ -6,6 +6,7 @@ use App\Models\GameRoom;
 use App\Models\GameRoomPlayer;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\WalletService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -196,7 +197,14 @@ class GameRoomAdvanceStartsCommandTest extends TestCase
             'account_type' => User::ACCOUNT_TYPE_PLAYER,
         ]);
 
-        return GameRoomPlayer::query()->create([
+        $walletService = app(WalletService::class);
+        $grantEntry = $walletService->grantPlayMoney(
+            user: $user,
+            amountUnits: 1_000,
+            idempotencyKey: 'advance-starts-grant-'.$room->id.'-'.$seatNumber,
+        );
+
+        $roomPlayer = GameRoomPlayer::query()->create([
             'game_room_id' => $room->id,
             'user_id' => $user->id,
             'status' => $status,
@@ -207,6 +215,16 @@ class GameRoomAdvanceStartsCommandTest extends TestCase
             'joined_at' => now(),
             'left_at' => null,
         ]);
+
+        $walletService->reserveUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: 100,
+            idempotencyKey: 'advance-starts-reserve-'.$roomPlayer->id,
+            referenceType: GameRoom::class,
+            referenceId: $room->id,
+        );
+
+        return $roomPlayer;
     }
 
     private function createFullRoomWithPlayers(): GameRoom

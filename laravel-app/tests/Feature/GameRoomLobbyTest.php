@@ -1259,4 +1259,241 @@ class GameRoomLobbyTest extends TestCase
             ->assertJsonPath('currentUser.waitingParticipationCount', 1);
     }
 
+    public function test_lobby_rooms_api_reflects_other_player_join_for_polling(): void
+    {
+        $observer = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $joiningUser = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        Wallet::query()->create([
+            'user_id' => $joiningUser->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1_000,
+            'reserved_units' => 0,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-POLL-JOIN',
+            'name' => 'Polling Join Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        $beforeResponse = $this->actingAs($observer)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+        ]));
+
+        $beforeResponse
+            ->assertOk()
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-POLL-JOIN')
+            ->assertJsonPath('rooms.0.playersDisplay', '0 / 3')
+            ->assertJsonPath('selectedRoom.playersDisplay', '0 / 3');
+
+        app(GameRoomJoinService::class)->join($joiningUser, $room);
+
+        $afterResponse = $this->actingAs($observer)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+        ]));
+
+        $afterResponse
+            ->assertOk()
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-POLL-JOIN')
+            ->assertJsonPath('rooms.0.playersDisplay', '1 / 3')
+            ->assertJsonPath('rooms.0.activePlayersCount', 1)
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-POLL-JOIN')
+            ->assertJsonPath('selectedRoom.playersDisplay', '1 / 3')
+            ->assertJsonPath('selectedRoom.activePlayersCount', 1);
+    }
+
+    public function test_lobby_rooms_api_reflects_other_player_leave_for_polling(): void
+    {
+        $observer = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $joiningUser = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $wallet = Wallet::query()->create([
+            'user_id' => $joiningUser->id,
+            'wallet_type' => Wallet::TYPE_USER,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'balance_units' => 1_000,
+            'reserved_units' => 0,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-POLL-LEAVE',
+            'name' => 'Polling Leave Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 3,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        app(GameRoomJoinService::class)->join($joiningUser, $room);
+
+        $joinedResponse = $this->actingAs($observer)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+        ]));
+
+        $joinedResponse
+            ->assertOk()
+            ->assertJsonPath('selectedRoom.playersDisplay', '1 / 3')
+            ->assertJsonPath('selectedRoom.activePlayersCount', 1);
+
+        $this->actingAs($joiningUser)->postJson(route('lobby.rooms.leave', [
+            'publicCode' => $room->public_code,
+        ]))->assertOk();
+
+        $afterLeaveResponse = $this->actingAs($observer)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+        ]));
+
+        $afterLeaveResponse
+            ->assertOk()
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-POLL-LEAVE')
+            ->assertJsonPath('selectedRoom.playersDisplay', '0 / 3')
+            ->assertJsonPath('selectedRoom.activePlayersCount', 0);
+
+        $this->assertSame(0, $wallet->fresh()->reserved_units);
+    }
+
+    public function test_lobby_rooms_api_reflects_running_room_for_participant_after_start_polling(): void
+    {
+        $participant = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $otherUser = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-POLL-RUNNING',
+            'name' => 'Polling Running Raum',
+            'status' => GameRoom::STATUS_RUNNING,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        GameRoomPlayer::query()->create([
+            'game_room_id' => $room->id,
+            'user_id' => $participant->id,
+            'status' => GameRoomPlayer::STATUS_PLAYING,
+            'seat_number' => 1,
+            'buy_in_units' => 100,
+            'rake_units' => 0,
+            'reserved_units' => 100,
+            'joined_at' => now(),
+            'left_at' => null,
+            'finished_at' => null,
+        ]);
+
+        GameRoomPlayer::query()->create([
+            'game_room_id' => $room->id,
+            'user_id' => $otherUser->id,
+            'status' => GameRoomPlayer::STATUS_PLAYING,
+            'seat_number' => 2,
+            'buy_in_units' => 100,
+            'rake_units' => 0,
+            'reserved_units' => 100,
+            'joined_at' => now(),
+            'left_at' => null,
+            'finished_at' => null,
+        ]);
+
+        $response = $this->actingAs($participant)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+            'status' => GameRoom::STATUS_RUNNING,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-POLL-RUNNING')
+            ->assertJsonPath('selectedRoom.status', GameRoom::STATUS_RUNNING)
+            ->assertJsonPath('selectedRoom.statusDisplay', 'Läuft')
+            ->assertJsonPath('selectedRoom.playersDisplay', '2 / 2')
+            ->assertJsonPath('selectedRoom.currentUserParticipation.isParticipating', true)
+            ->assertJsonPath('selectedRoom.currentUserParticipation.status', GameRoomPlayer::STATUS_PLAYING)
+            ->assertJsonPath('selectedRoom.actions.showJoin', false)
+            ->assertJsonPath('selectedRoom.actions.showLeave', false)
+            ->assertJsonPath('selectedRoom.actions.showOpenGame', true)
+            ->assertJsonPath('currentUser.runningParticipationCount', 1);
+    }
+
+    public function test_lobby_rooms_api_does_not_offer_join_for_running_room_to_non_participant(): void
+    {
+        $observer = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $participant = User::factory()->create([
+            'account_type' => User::ACCOUNT_TYPE_PLAYER,
+        ]);
+
+        $room = GameRoom::create([
+            'public_code' => 'ROOM-POLL-RUNNING-NON-PARTICIPANT',
+            'name' => 'Running Nichtteilnehmer Raum',
+            'status' => GameRoom::STATUS_RUNNING,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 100,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 0,
+        ]);
+
+        GameRoomPlayer::query()->create([
+            'game_room_id' => $room->id,
+            'user_id' => $participant->id,
+            'status' => GameRoomPlayer::STATUS_PLAYING,
+            'seat_number' => 1,
+            'buy_in_units' => 100,
+            'rake_units' => 0,
+            'reserved_units' => 100,
+            'joined_at' => now(),
+            'left_at' => null,
+            'finished_at' => null,
+        ]);
+
+        $response = $this->actingAs($observer)->getJson(route('lobby.rooms', [
+            'room' => $room->public_code,
+            'status' => GameRoom::STATUS_RUNNING,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('selectedRoom.publicCode', 'ROOM-POLL-RUNNING-NON-PARTICIPANT')
+            ->assertJsonPath('selectedRoom.status', GameRoom::STATUS_RUNNING)
+            ->assertJsonPath('selectedRoom.currentUserParticipation.isParticipating', false)
+            ->assertJsonPath('selectedRoom.actions.showJoin', false)
+            ->assertJsonPath('selectedRoom.actions.showLeave', false)
+            ->assertJsonPath('selectedRoom.actions.showOpenGame', false);
+    }
+
 }

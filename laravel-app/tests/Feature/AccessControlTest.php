@@ -197,12 +197,12 @@ class AccessControlTest extends TestCase
 
         $response
             ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert. 6 Testuser und 4 Testräume wurden frisch vorbereitet. Passwort: password');
+            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde aktiviert. 6 Testuser und 5 Testräume wurden frisch vorbereitet. Passwort: password');
 
         $this->assertTrue(SystemSetting::phase3LocalTestHarnessIsEnabled());
         $this->assertDatabaseCount('users', 7);
         $this->assertDatabaseCount('wallets', 6);
-        $this->assertDatabaseCount('game_rooms', 4);
+        $this->assertDatabaseCount('game_rooms', 5);
         $this->assertSame(5, LedgerEntry::query()->count());
 
         $this->assertDatabaseHas('users', [
@@ -235,7 +235,7 @@ class AccessControlTest extends TestCase
         $this->assertSame(6, User::query()->where('email', 'like', '%@phase3-test.stechen.local')->count());
         $this->assertSame(6, Wallet::query()->count());
         $this->assertSame(5, LedgerEntry::query()->count());
-        $this->assertSame(4, GameRoom::query()->where('is_test', true)->count());
+        $this->assertSame(5, GameRoom::query()->where('is_test', true)->count());
 
         $response = $this
             ->actingAs($user)
@@ -243,7 +243,7 @@ class AccessControlTest extends TestCase
 
         $response
             ->assertRedirect(route('admin.dashboard'))
-            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert. Testdaten wurden bereinigt: 6 User, 6 Wallets, 5 Ledger-Einträge, 4 Räume.');
+            ->assertSessionHas('status', 'Lokaler Phase-3-Browser-Testmodus wurde deaktiviert. Testdaten wurden bereinigt: 6 User, 6 Wallets, 5 Ledger-Einträge, 5 Räume.');
 
         $this->assertFalse(SystemSetting::phase3LocalTestHarnessIsEnabled());
         $this->assertSame(0, User::query()->where('email', 'like', '%@phase3-test.stechen.local')->count());

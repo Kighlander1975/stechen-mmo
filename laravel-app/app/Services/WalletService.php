@@ -27,6 +27,25 @@ class WalletService
         );
     }
 
+    public function getOrCreatePlayMoneyRakeWallet(): Wallet
+    {
+        return Wallet::firstOrCreate(
+            [
+                'user_id' => null,
+                'wallet_type' => Wallet::TYPE_RAKE,
+                'asset_type' => Wallet::ASSET_PLAY_MONEY,
+                'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            ],
+            [
+                'balance_units' => 0,
+                'reserved_units' => 0,
+                'metadata' => [
+                    'source' => 'system_rake_wallet',
+                ],
+            ],
+        );
+    }
+
     public function grantPlayMoney(
         User $user,
         int $amountUnits,
@@ -215,6 +234,103 @@ class WalletService
                 'balance_after_units' => $lockedWallet->balance_units,
                 'reserved_after_units' => $lockedWallet->reserved_units,
                 'entry_type' => LedgerEntry::TYPE_RELEASE,
+                'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'description' => $description,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
+
+    public function commitReservedUnits(
+        Wallet $wallet,
+        int $amountUnits,
+        string $idempotencyKey,
+        ?string $description = null,
+        array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): LedgerEntry {
+        $this->ensurePositiveAmount($amountUnits);
+        $this->ensureIdempotencyKey($idempotencyKey);
+
+        return DB::transaction(function () use ($wallet, $amountUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId): LedgerEntry {
+            $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
+
+            if ($existingEntry !== null) {
+                return $existingEntry;
+            }
+
+            $lockedWallet = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedWallet->reserved_units < $amountUnits) {
+                throw new RuntimeException('Not enough reserved wallet units.');
+            }
+
+            if ($lockedWallet->balance_units < $amountUnits) {
+                throw new RuntimeException('Not enough wallet balance units.');
+            }
+
+            $lockedWallet->reserved_units -= $amountUnits;
+            $lockedWallet->balance_units -= $amountUnits;
+            $lockedWallet->save();
+
+            return LedgerEntry::create([
+                'wallet_id' => $lockedWallet->id,
+                'user_id' => $lockedWallet->user_id,
+                'asset_type' => $lockedWallet->asset_type,
+                'currency_code' => $lockedWallet->currency_code,
+                'direction' => LedgerEntry::DIRECTION_DEBIT,
+                'amount_units' => $amountUnits,
+                'balance_after_units' => $lockedWallet->balance_units,
+                'reserved_after_units' => $lockedWallet->reserved_units,
+                'entry_type' => LedgerEntry::TYPE_COMMIT,
+                'idempotency_key' => $idempotencyKey,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'description' => $description,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
+
+    public function creditRakeUnits(
+        int $amountUnits,
+        string $idempotencyKey,
+        ?string $description = null,
+        array $metadata = [],
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+        ?int $relatedWalletId = null,
+    ): LedgerEntry {
+        $this->ensurePositiveAmount($amountUnits);
+        $this->ensureIdempotencyKey($idempotencyKey);
+
+        return DB::transaction(function () use ($amountUnits, $idempotencyKey, $description, $metadata, $referenceType, $referenceId, $relatedWalletId): LedgerEntry {
+            $existingEntry = LedgerEntry::where('idempotency_key', $idempotencyKey)->first();
+
+            if ($existingEntry !== null) {
+                return $existingEntry;
+            }
+
+            $wallet = $this->getOrCreatePlayMoneyRakeWallet();
+            $lockedWallet = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+            $lockedWallet->balance_units += $amountUnits;
+            $lockedWallet->save();
+
+            return LedgerEntry::create([
+                'wallet_id' => $lockedWallet->id,
+                'related_wallet_id' => $relatedWalletId,
+                'user_id' => null,
+                'asset_type' => $lockedWallet->asset_type,
+                'currency_code' => $lockedWallet->currency_code,
+                'direction' => LedgerEntry::DIRECTION_CREDIT,
+                'amount_units' => $amountUnits,
+                'balance_after_units' => $lockedWallet->balance_units,
+                'reserved_after_units' => $lockedWallet->reserved_units,
+                'entry_type' => LedgerEntry::TYPE_RAKE,
                 'idempotency_key' => $idempotencyKey,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,

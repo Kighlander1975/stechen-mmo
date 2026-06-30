@@ -380,6 +380,134 @@ class WalletServiceTest extends TestCase
         $service->adjustPlayMoneyBalanceTo($user, 399, 'adjust-below-reserved-'.$user->id);
     }
 
+    public function test_it_creates_single_play_money_rake_wallet(): void
+    {
+        $service = app(WalletService::class);
+
+        $firstWallet = $service->getOrCreatePlayMoneyRakeWallet();
+        $secondWallet = $service->getOrCreatePlayMoneyRakeWallet();
+
+        $this->assertTrue($firstWallet->is($secondWallet));
+        $this->assertNull($firstWallet->user_id);
+        $this->assertSame(Wallet::TYPE_RAKE, $firstWallet->wallet_type);
+        $this->assertSame(Wallet::ASSET_PLAY_MONEY, $firstWallet->asset_type);
+        $this->assertSame(Wallet::CURRENCY_STECHEN_DOLLAR, $firstWallet->currency_code);
+        $this->assertSame(0, $firstWallet->balance_units);
+        $this->assertSame(0, $firstWallet->reserved_units);
+        $this->assertSame(1, Wallet::query()->count());
+    }
+
+    public function test_it_commits_reserved_units(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'commit-grant-'.$user->id);
+        $service->reserveUnits($grantEntry->wallet, 400, 'commit-reserve-'.$user->id);
+
+        $commitEntry = $service->commitReservedUnits(
+            wallet: $grantEntry->wallet,
+            amountUnits: 150,
+            idempotencyKey: 'commit-test-'.$user->id,
+            description: 'Commit test reservation',
+            metadata: [
+                'source' => 'commit-test',
+            ],
+            referenceType: GameRoom::class,
+            referenceId: 321,
+        );
+
+        $wallet = $grantEntry->wallet->fresh();
+
+        $this->assertSame(850, $wallet->balance_units);
+        $this->assertSame(250, $wallet->reserved_units);
+        $this->assertSame(600, $wallet->available_units);
+        $this->assertSame(LedgerEntry::TYPE_COMMIT, $commitEntry->entry_type);
+        $this->assertSame(LedgerEntry::DIRECTION_DEBIT, $commitEntry->direction);
+        $this->assertSame(150, $commitEntry->amount_units);
+        $this->assertSame(850, $commitEntry->balance_after_units);
+        $this->assertSame(250, $commitEntry->reserved_after_units);
+        $this->assertSame('commit-test', $commitEntry->metadata['source']);
+        $this->assertSame(GameRoom::class, $commitEntry->reference_type);
+        $this->assertSame(321, $commitEntry->reference_id);
+    }
+
+    public function test_commit_reserved_units_is_idempotent(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'commit-idempotent-grant-'.$user->id);
+        $service->reserveUnits($grantEntry->wallet, 400, 'commit-idempotent-reserve-'.$user->id);
+
+        $firstEntry = $service->commitReservedUnits($grantEntry->wallet, 250, 'same-commit-key');
+        $secondEntry = $service->commitReservedUnits($grantEntry->wallet, 250, 'same-commit-key');
+
+        $wallet = $grantEntry->wallet->fresh();
+
+        $this->assertTrue($firstEntry->is($secondEntry));
+        $this->assertSame(750, $wallet->balance_units);
+        $this->assertSame(150, $wallet->reserved_units);
+        $this->assertSame(3, LedgerEntry::query()->count());
+    }
+
+    public function test_commit_reserved_units_rejects_insufficient_reserved_units(): void
+    {
+        $user = User::factory()->create();
+
+        $service = app(WalletService::class);
+        $grantEntry = $service->grantPlayMoney($user, 1_000, 'commit-insufficient-reserved-grant-'.$user->id);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Not enough reserved wallet units.');
+
+        $service->commitReservedUnits($grantEntry->wallet, 1, 'commit-insufficient-reserved-key');
+    }
+
+    public function test_it_credits_rake_units_to_single_rake_wallet(): void
+    {
+        $entry = app(WalletService::class)->creditRakeUnits(
+            amountUnits: 25,
+            idempotencyKey: 'rake-credit-test',
+            description: 'Rake credit test',
+            metadata: [
+                'source' => 'rake-test',
+            ],
+            referenceType: GameRoom::class,
+            referenceId: 654,
+        );
+
+        $wallet = $entry->wallet->fresh();
+
+        $this->assertNull($wallet->user_id);
+        $this->assertSame(Wallet::TYPE_RAKE, $wallet->wallet_type);
+        $this->assertSame(25, $wallet->balance_units);
+        $this->assertSame(0, $wallet->reserved_units);
+        $this->assertSame(LedgerEntry::TYPE_RAKE, $entry->entry_type);
+        $this->assertSame(LedgerEntry::DIRECTION_CREDIT, $entry->direction);
+        $this->assertSame(25, $entry->amount_units);
+        $this->assertSame(25, $entry->balance_after_units);
+        $this->assertSame(0, $entry->reserved_after_units);
+        $this->assertNull($entry->user_id);
+        $this->assertSame('rake-test', $entry->metadata['source']);
+        $this->assertSame(GameRoom::class, $entry->reference_type);
+        $this->assertSame(654, $entry->reference_id);
+    }
+
+    public function test_credit_rake_units_is_idempotent(): void
+    {
+        $service = app(WalletService::class);
+
+        $firstEntry = $service->creditRakeUnits(25, 'same-rake-credit-key');
+        $secondEntry = $service->creditRakeUnits(25, 'same-rake-credit-key');
+
+        $wallet = $firstEntry->wallet->fresh();
+
+        $this->assertTrue($firstEntry->is($secondEntry));
+        $this->assertSame(25, $wallet->balance_units);
+        $this->assertSame(1, LedgerEntry::query()->count());
+    }
+
     public function test_it_rejects_non_positive_amounts(): void
     {
         $user = User::factory()->create();
