@@ -430,27 +430,55 @@ Rundungen erfolgen immer zugunsten der Spieler.
 
 ## 13. Preisverteilung
 
-Vorschlag für bezahlte Plätze nach Spieleranzahl:
+Die aktuelle MVP-Preisverteilung ist in einer eigenen Detaildatei festgelegt:
 
-| Spieleranzahl | Bezahlte Plätze |
-|---:|---:|
-| 2–4 | 1 Platz, Winner takes all |
-| 5–7 | 2 Plätze |
-| 8–9 | 3 Plätze |
-| 10–11 | 4 Plätze |
+- `docs/settlement-prize-distribution-planning.md`
 
-Bei mehr als einem bezahlten Platz gilt:
+Kurzfassung:
 
-- letzter bezahlter Platz erhält mindestens das 1,3-fache des Buy-ins
-- Sieger sollen deutlich mehr erhalten
-- Poker-Auszahlungstabellen können als Orientierung dienen
+- Auszahlungen erfolgen aus dem Netto-Preispool.
+- Für die MVP-Phase gilt eine fixe Rake von `2 %`.
+- Rake wird immer abgerundet zugunsten der Spieler.
+- Wertende Buy-in-Räume mit mehr als einem bezahlten Platz müssen mindestens `10 St$` Buy-in haben.
+- Kostenlose Räume sind davon ausgenommen und folgen eigenen Trainings-/Testregeln.
+- Bei mehr als einem bezahlten Platz muss der letzte bezahlte Platz mindestens das `1,3`-fache des Brutto-Buy-ins erhalten.
+- KI-Spieler erhalten keine Gewinne.
+- Wenn eine KI einen disconnected echten Spieler vertritt, bleibt die Auszahlung dem ursprünglichen echten Spieler zugeordnet und der Fall wird für spätere Abuse-Prüfung markiert.
 
-Noch offen:
+Aktuelle MVP-Auszahlungstabelle:
 
-- exakte Prozenttabellen
-- konkrete Buy-in-Stufen
-- mathematische Auszahlungsgarantien
-- Rundungslogik bei Auszahlungen
+| Spieleranzahl | Bezahlte Plätze | Platz 1 | Platz 2 | Platz 3 | Platz 4 |
+|---:|---:|---:|---:|---:|---:|
+| 2 | 1 | 100 % | - | - | - |
+| 3 | 1 | 100 % | - | - | - |
+| 4 | 1 | 100 % | - | - | - |
+| 5 | 2 | 68 % | 32 % | - | - |
+| 6 | 2 | 70 % | 30 % | - | - |
+| 7 | 2 | 72 % | 28 % | - | - |
+| 8 | 3 | 52 % | 30 % | 18 % | - |
+| 9 | 3 | 54 % | 29 % | 17 % | - |
+| 10 | 4 | 43 % | 27 % | 16 % | 14 % |
+| 11 | 4 | 42 % | 27 % | 18 % | 13 % |
+
+Rundungsregel:
+
+| Rundungsrest | Verteilung |
+|---:|---|
+| 0 St$ | keine Zusatzverteilung |
+| 1 St$ | +1 St$ an den letzten bezahlten Platz |
+| 2 St$ | +1 St$ an den letzten und +1 St$ an den vorletzten bezahlten Platz |
+| 3 St$ | +2 St$ an den letzten und +1 St$ an den vorletzten bezahlten Platz |
+
+Simulationsstand:
+
+| Kennzahl | Wert |
+|---|---:|
+| Geprüfte Spielerzahlen | 2 bis 11 |
+| Geprüfte Buy-ins | 1 bis 500 St$ |
+| Maximaler Rundungsrest | 3 St$ |
+| Maximal benötigter RakePool-Ausgleich | 0 St$ |
+| Fälle mit Rundungsrest > 4 St$ | 0 |
+| Fälle mit RakePool-Ausgleich > 4 St$ | 0 |
 
 ---
 

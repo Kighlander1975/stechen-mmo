@@ -49,6 +49,7 @@ docs\GAME_RULES.md
 docs\PHASE_3_WALLET_BUYIN_AND_LOBBY.md
 docs\phase-3-game-room-creation.md
 docs\PHASE_3_ROOM_LIFECYCLE_SERVICES.md
+docs\settlement-prize-distribution-planning.md
 docs\reward-room-economy-planning.md
 docs\lobby-room-browser-vue-state.md
 docs\FRONTEND_VUE_ISLANDS.md
@@ -66,6 +67,7 @@ Diese Dateien gelten als primäre Quelle für:
 - Spielregeln
 - Phase 3 Wallet, Buy-in, Lobby und Raumversorgung
 - Raum-Lifecycle, Raumbeitritt, Leave, Cancel, Startprüfung, Countdown und Teilnahmelimits
+- Settlement- und Preisverteilungsregeln für MVP-Spielgeldräume
 - Raum-Lifecycle und systemseitige Raumerzeugung
 - Reward-, Rake- und Raumökonomie
 - aktuellen Lobby-Raumbrowser mit Vue-Island
