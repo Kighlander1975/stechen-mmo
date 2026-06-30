@@ -62,7 +62,6 @@ class GameRoomJoinService
             }
 
             $buyInUnits = (int) $lockedRoom->buy_in_units;
-            $rakeUnits = 0;
             $reservedUnits = $buyInUnits;
 
             $roomPlayer = GameRoomPlayer::query()->create([
@@ -71,7 +70,7 @@ class GameRoomJoinService
                 'status' => GameRoomPlayer::STATUS_RESERVED,
                 'seat_number' => $seatNumber,
                 'buy_in_units' => $buyInUnits,
-                'rake_units' => $rakeUnits,
+                'rake_units' => 0,
                 'reserved_units' => 0,
                 'joined_at' => now(),
                 'left_at' => null,
@@ -92,7 +91,7 @@ class GameRoomJoinService
                     'user_id' => $user->id,
                     'seat_number' => $seatNumber,
                     'buy_in_units' => $buyInUnits,
-                    'rake_units' => $rakeUnits,
+                    'rake_units' => 0,
                     'reserved_units' => $reservedUnits,
                 ],
                 referenceType: GameRoom::class,

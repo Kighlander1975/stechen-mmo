@@ -173,8 +173,8 @@ class GameRoomLobbyTest extends TestCase
             'status' => GameRoomPlayer::STATUS_RESERVED,
             'seat_number' => 1,
             'buy_in_units' => 1_000,
-            'rake_units' => 25,
-            'reserved_units' => 1_025,
+            'rake_units' => 0,
+            'reserved_units' => 1_000,
             'joined_at' => now(),
         ]);
 
