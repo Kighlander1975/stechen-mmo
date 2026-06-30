@@ -686,6 +686,34 @@ class GameRoomLobbyTest extends TestCase
             ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
     }
 
+    public function test_lobby_rooms_api_uses_minimum_rake_for_prize_pool_display(): void
+    {
+        $user = User::factory()->create();
+
+        GameRoom::create([
+            'public_code' => 'ROOM-API-MIN-RAKE',
+            'name' => 'Minimum Rake Raum',
+            'status' => GameRoom::STATUS_OPEN,
+            'asset_type' => Wallet::ASSET_PLAY_MONEY,
+            'currency_code' => Wallet::CURRENCY_STECHEN_DOLLAR,
+            'buy_in_units' => 5,
+            'min_players' => 2,
+            'max_players' => 2,
+            'start_mode' => GameRoom::START_MODE_WHEN_FULL,
+            'rake_basis_points' => 200,
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('lobby.rooms'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('rooms.0.publicCode', 'ROOM-API-MIN-RAKE')
+            ->assertJsonPath('rooms.0.buyInDisplay', '5 St$')
+            ->assertJsonPath('rooms.0.prizePoolDisplay', '9 St$')
+            ->assertJsonPath('rooms.0.feeDisplay', 'abzgl. 2,00 % Gebühr');
+    }
+
     public function test_lobby_rooms_api_returns_starting_room_timing_payload(): void
     {
         $user = User::factory()->create();

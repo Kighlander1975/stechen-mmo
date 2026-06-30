@@ -6,6 +6,7 @@ use App\Models\GameRoom;
 use App\Models\GameRoomPlayer;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\GameRooms\GameRoomRakeService;
 use App\Services\Phase3\Phase3LocalTestHarnessService;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -14,6 +15,7 @@ class LobbyRoomBrowserPayloadService
     public function __construct(
         private readonly LobbyRoomQueryService $roomQueryService,
         private readonly Phase3LocalTestHarnessService $phase3LocalTestHarness,
+        private readonly GameRoomRakeService $rakeService,
     ) {
     }
 
@@ -121,9 +123,18 @@ class LobbyRoomBrowserPayloadService
     private function formatRoom(GameRoom $room, \DateTimeInterface $serverNow, ?User $user = null): array
     {
         $activePlayersCount = (int) ($room->active_players_count ?? 0);
-        $grossPoolUnits = $room->buy_in_units * $room->max_players;
-        $rakeUnits = intdiv($grossPoolUnits * $room->rake_basis_points, 10000);
-        $prizePoolUnits = $grossPoolUnits - $rakeUnits;
+        $grossPoolUnits = $this->rakeService->calculateGrossPrizePoolUnits(
+            (int) $room->buy_in_units,
+            (int) $room->max_players,
+        );
+        $rakeUnits = $this->rakeService->calculateRakeUnits(
+            $grossPoolUnits,
+            (int) $room->rake_basis_points,
+        );
+        $prizePoolUnits = $this->rakeService->calculateNetPrizePoolUnits(
+            $grossPoolUnits,
+            $rakeUnits,
+        );
         $startsInSeconds = $room->starts_at !== null
             ? max(0, $room->starts_at->getTimestamp() - $serverNow->getTimestamp())
             : null;
