@@ -1,0 +1,112 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PHP ARTISAN SERVE",
+      "type": "process",
+      "command": "php",
+      "args": [
+        "artisan",
+        "serve"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/laravel-app"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "focus": false,
+        "panel": "dedicated",
+        "group": "stechen-mmo-serve",
+        "clear": false
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "NPM RUN DEV",
+      "type": "process",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/laravel-app"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "focus": false,
+        "panel": "dedicated",
+        "group": "stechen-mmo-vite",
+        "clear": false
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "PHP ARTISAN SCHEDULE:WORK",
+      "type": "process",
+      "command": "php",
+      "args": [
+        "artisan",
+        "schedule:work"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/laravel-app"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "focus": false,
+        "panel": "dedicated",
+        "group": "stechen-mmo-scheduler",
+        "clear": false
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "STECHEN-MMO WORK TERMINAL",
+      "type": "process",
+      "command": "pwsh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "group": "stechen-mmo-work",
+        "clear": false
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    },
+    {
+      "label": "STECHEN-MMO DEVELOPMENT",
+      "dependsOn": [
+        "PHP ARTISAN SERVE",
+        "NPM RUN DEV",
+        "PHP ARTISAN SCHEDULE:WORK",
+        "STECHEN-MMO WORK TERMINAL"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

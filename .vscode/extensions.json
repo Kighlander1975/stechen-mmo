@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "bmewburn.vscode-intelephense-client",
+    "vue.volar",
+    "bradlc.vscode-tailwindcss",
+    "shufo.vscode-blade-formatter"
+  ],
+  "unwantedRecommendations": [
+    "zobo.php-intellisense",
+    "TheNouillet.symfony-vscode"
+  ]
+}

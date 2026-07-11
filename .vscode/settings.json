@@ -1,0 +1,12 @@
+{
+  "editor.formatOnSave": false,
+  "python.terminal.activateEnvironment": false,
+  "python.terminal.shellIntegration.enabled": false,
+  "terminal.integrated.enablePersistentSessions": false,
+  "files.associations": {
+    "*.blade.php": "blade"
+  },
+  "git.enableSmartCommit": false,
+  "git.confirmSync": true,
+  "intelephense.environment.documentRoot": "laravel-app"
+}
