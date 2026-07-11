@@ -42,13 +42,13 @@ Aktuell empfohlene Haupt-KB-Auswahl:
 
 ```text
 docs\KB_SOURCE_INDEX.md
-docs\PROJECT_OVERVIEW.md
-docs\PHASES_INDEX.md
-docs\ROADMAP.md
+docs\archiv\planung\PROJECT_OVERVIEW.md
+docs\archiv\zwischenstaende\PHASES_INDEX.md
+docs\archiv\planung\ROADMAP.md
 docs\GAME_RULES.md
-docs\PHASE_3_WALLET_BUYIN_AND_LOBBY.md
-docs\phase-3-game-room-creation.md
-docs\PHASE_3_ROOM_LIFECYCLE_SERVICES.md
+docs\archiv\phasen\PHASE_3_WALLET_BUYIN_AND_LOBBY.md
+docs\archiv\phasen\phase-3-game-room-creation.md
+docs\archiv\phasen\PHASE_3_ROOM_LIFECYCLE_SERVICES.md
 docs\settlement-prize-distribution-planning.md
 docs\reward-room-economy-planning.md
 docs\lobby-room-browser-vue-state.md
@@ -80,9 +80,9 @@ Diese Dateien gelten als primäre Quelle für:
 Diese Dateien sind weiterhin nützlich, sollen aber nicht dauerhaft die aktive Haupt-KB vergrößern, solange ihr Inhalt nicht konkret benötigt wird oder teilweise durch aktuellere Dokumente überholt ist:
 
 ```text
-docs\PHASE_1_FOUNDATION.md
-docs\PHASE_2_AUTH_AND_USERS.md
-docs\MVP_CONCEPT.md
+docs\archiv\phasen\PHASE_1_FOUNDATION.md
+docs\archiv\phasen\PHASE_2_AUTH_AND_USERS.md
+docs\archiv\planung\MVP_CONCEPT.md
 docs\rollen-und-berechtigungen.md
 docs\Stechen-Serverkonzept.md
 docs\tech-stack.md
@@ -230,8 +230,8 @@ Nur gezielt vom Nutzer anfordern, wenn ausdrücklich lokale Ideen, Tagesplanung 
 
 ```text
 docs\development-environment.md
-docs\next-steps.md
-docs\project.md
+docs\archiv\zwischenstaende\next-steps.md
+docs\archiv\planung\project.md
 ```
 
 Status:
@@ -820,4 +820,3 @@ Ausgeschlossene Dateien bleiben als lokale Quellen erhalten.
 Nützliche Informationen aus ausgeschlossenen Dateien werden bei Bedarf gezielt angefragt.
 Sensible oder veraltete Details werden nicht ungeprüft übernommen.
 ```
-
