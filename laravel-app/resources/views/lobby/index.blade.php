@@ -4,7 +4,7 @@
 
 <x-app-layout
     header-eyebrow="SPIELLOBBY"
-    header-title="Lobby"
+    :header-title="'Lobby · Angemeldet als: '.Auth::user()->name"
     header-status-label="Verifiziert"
     header-status-tone="success"
 >

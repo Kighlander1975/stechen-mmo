@@ -907,6 +907,20 @@ class GameRoomLobbyTest extends TestCase
             ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;1.234 St$&quot;', false);
     }
 
+    public function test_lobby_header_shows_authenticated_player_name_and_supports_long_names(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Phase 3 Spieler mit einem außergewöhnlich langen Anzeigenamen für schmale Browserfenster',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('lobby'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Lobby · Angemeldet als: '.$user->name, false);
+    }
+
     public function test_lobby_shows_selected_room_details(): void
     {
         $user = User::factory()->create([

@@ -96,6 +96,7 @@ Vue erhält ein vorbereitetes Payload.
 Bestätigt sind u.a.:
 
 - Vue-Island für die Lobby
+- Anzeige des authentifizierten Spielernamens im gemeinsamen Lobby-Header
 - Payload-API
 - Query-Service
 - Filter und Kategorien

@@ -178,12 +178,12 @@ onUnmounted(() => {
 
         <section class="border-t border-slate-900 bg-slate-900/60">
             <div class="mx-auto grid max-w-[1600px] grid-cols-2 items-center gap-5 px-6 py-5">
-                <div>
+                <div class="min-w-0">
                     <p class="text-sm font-medium uppercase tracking-wide text-amber-400">
                         {{ eyebrow }}
                     </p>
 
-                    <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-100">
+                    <h1 class="mt-1 break-words text-2xl font-bold tracking-tight text-slate-100 [overflow-wrap:anywhere]">
                         {{ title }}
                     </h1>
                 </div>
@@ -259,5 +259,4 @@ onUnmounted(() => {
         </section>
     </header>
 </template>
-
 

@@ -1,6 +1,6 @@
 # KB Source Index
 
-Stand: 2026-06-24
+Stand: 2026-07-12
 
 Dieses Dokument beschreibt, welche Projektdateien in die KI-Projekt-KB aufgenommen wurden, welche bewusst ausgeschlossen wurden und welche ausgeschlossenen Dateien bei Bedarf gezielt als Quelle nachgereicht werden können.
 
@@ -55,6 +55,7 @@ docs\lobby-room-browser-vue-state.md
 docs\FRONTEND_VUE_ISLANDS.md
 docs\BLADE_LAYOUT_COMPONENTS.md
 docs\HOMESERVER_FALLBACK.md
+docs\development\VISUAL_REVIEW_RUN.md
 ```
 
 ### Einordnung
@@ -74,6 +75,7 @@ Diese Dateien gelten als primäre Quelle für:
 - Frontend-/Vue-Island-Architektur
 - Blade-/Layout-Komponenten
 - HomeServer-/Realtime-Fallback-Grundidee
+- projektweite Richtlinie für reproduzierbare, kostenbewusste Visual Review Runs
 
 ### Bei Bedarf gezielt anfordern
 

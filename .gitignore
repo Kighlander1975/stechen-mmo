@@ -1,5 +1,6 @@
 # Private/local project notes
 /_docs/
+/_review/
 
 # Root environment files
 .env
