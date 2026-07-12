@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GameRoom;
+use App\Services\Lobby\LobbyFilterPreferenceService;
 use App\Services\Lobby\LobbyRoomBrowserPayloadService;
 use App\Services\Lobby\LobbyRoomQueryService;
 use Illuminate\Http\Request;
@@ -14,14 +15,19 @@ class LobbyController extends Controller
         Request $request,
         LobbyRoomQueryService $lobbyRoomQueryService,
         LobbyRoomBrowserPayloadService $lobbyRoomBrowserPayloadService,
+        LobbyFilterPreferenceService $preferenceService,
     ): View {
-        $filters = [
+        $requestedFilters = [
             'status' => $request->query('status'),
             'start_mode' => $request->query('start_mode'),
             'buy_in' => $request->query('buy_in'),
             'players' => $request->query('players'),
             'only_test' => $request->query('only_test'),
         ];
+
+        $filters = $request->hasAny(LobbyFilterPreferenceService::FILTER_KEYS)
+            ? $preferenceService->normalize($requestedFilters, $request->user())
+            : $preferenceService->load($request->user());
 
         $selectedRoom = null;
         $selectedRoomCode = $request->string('room')->trim()->toString();

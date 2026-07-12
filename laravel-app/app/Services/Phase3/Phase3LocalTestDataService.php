@@ -6,6 +6,7 @@ use App\Models\GameRoom;
 use App\Models\LedgerEntry;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Lobby\LobbyFilterPreferenceService;
 use App\Services\WalletService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class Phase3LocalTestDataService
     public function __construct(
         private readonly Phase3LocalTestHarnessService $phase3LocalTestHarness,
         private readonly WalletService $walletService,
+        private readonly LobbyFilterPreferenceService $lobbyFilterPreferenceService,
     ) {
     }
 
@@ -50,6 +52,8 @@ class Phase3LocalTestDataService
     {
         return DB::transaction(function (): array {
             $cleanup = $this->cleanup();
+
+            $this->lobbyFilterPreferenceService->resetTestModePreferences();
 
             $this->phase3LocalTestHarness->disable();
 

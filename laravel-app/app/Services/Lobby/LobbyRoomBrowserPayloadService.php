@@ -14,6 +14,7 @@ class LobbyRoomBrowserPayloadService
 {
     public function __construct(
         private readonly LobbyRoomQueryService $roomQueryService,
+        private readonly LobbyFilterPreferenceService $filterPreferenceService,
         private readonly Phase3LocalTestHarnessService $phase3LocalTestHarness,
         private readonly GameRoomRakeService $rakeService,
     ) {
@@ -27,12 +28,14 @@ class LobbyRoomBrowserPayloadService
      *     selectedRoom: ?array<string, mixed>,
      *     selectedRoomCode: ?string,
      *     selectedRoomVisible: bool,
-     *     meta: array{count: int, serverNow: string, phase3LocalTestHarnessEnabled: bool}
+     *     meta: array{count: int, serverNow: string, phase3LocalTestHarnessEnabled: bool, canUseTestRoomFilter: bool, preferencesUrl: string}
      * }
      */
     public function build(array $filters, ?string $selectedRoomCode = null, ?User $user = null): array
     {
-        $normalizedFilters = $this->normalizeFilters($filters);
+        $normalizedFilters = $user !== null
+            ? $this->filterPreferenceService->normalize($filters, $user)
+            : $this->normalizeFilters($filters);
         $rooms = $this->roomQueryService->getFilteredRooms($normalizedFilters, $user);
 
         $selectedRoomCode = $this->normalizeSelectedRoomCode($selectedRoomCode);
@@ -59,6 +62,9 @@ class LobbyRoomBrowserPayloadService
                 'count' => $rooms->count(),
                 'serverNow' => $serverNow->toJSON(),
                 'phase3LocalTestHarnessEnabled' => $this->phase3LocalTestHarness->isEnabled(),
+                'canUseTestRoomFilter' => $user !== null
+                    && $this->filterPreferenceService->canUseTestRoomFilter($user),
+                'preferencesUrl' => route('lobby.preferences.update'),
             ],
         ];
     }
@@ -83,13 +89,7 @@ class LobbyRoomBrowserPayloadService
      */
     public function allowedBuyInCategories(): array
     {
-        return [
-            'free',
-            'micro',
-            'low',
-            'medium',
-            'high',
-        ];
+        return $this->roomQueryService->allowedBuyInCategories();
     }
 
     /**
@@ -97,12 +97,7 @@ class LobbyRoomBrowserPayloadService
      */
     public function allowedPlayerCategories(): array
     {
-        return [
-            'heads_up',
-            'small',
-            'medium',
-            'large',
-        ];
+        return $this->roomQueryService->allowedPlayerCategories();
     }
 
     /**

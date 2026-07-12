@@ -965,7 +965,9 @@ class GameRoomLobbyTest extends TestCase
     {
         app(Phase3LocalTestHarnessService::class)->enable();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'email' => 'lobby-filter@phase3-test.stechen.local',
+        ]);
 
         GameRoom::create([
             'public_code' => 'ROOM-NORMAL-MICRO',
@@ -1030,7 +1032,9 @@ class GameRoomLobbyTest extends TestCase
     {
         app(Phase3LocalTestHarnessService::class)->enable();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'email' => 'lobby-api-filter@phase3-test.stechen.local',
+        ]);
 
         GameRoom::create([
             'public_code' => 'ROOM-API-NORMAL-TEST-FILTER',

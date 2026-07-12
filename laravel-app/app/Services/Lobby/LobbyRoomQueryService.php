@@ -167,5 +167,31 @@ class LobbyRoomQueryService
             GameRoom::START_MODE_SCHEDULED,
         ];
     }
-}
 
+    /**
+     * @return list<string>
+     */
+    public function allowedBuyInCategories(): array
+    {
+        return [
+            'free',
+            'micro',
+            'low',
+            'medium',
+            'high',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedPlayerCategories(): array
+    {
+        return [
+            'heads_up',
+            'small',
+            'medium',
+            'large',
+        ];
+    }
+}

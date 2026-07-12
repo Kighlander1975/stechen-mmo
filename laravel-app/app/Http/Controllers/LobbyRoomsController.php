@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Lobby\LobbyFilterPreferenceService;
 use App\Services\Lobby\LobbyRoomBrowserPayloadService;
 use App\Services\Lobby\LobbyRoomQueryService;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ class LobbyRoomsController extends Controller
         Request $request,
         LobbyRoomBrowserPayloadService $payloadService,
         LobbyRoomQueryService $roomQueryService,
+        LobbyFilterPreferenceService $preferenceService,
     ): JsonResponse {
         $validated = $request->validate([
             'status' => ['nullable', 'string', Rule::in($roomQueryService->allowedStatuses())],
@@ -24,14 +26,20 @@ class LobbyRoomsController extends Controller
             'room' => ['nullable', 'string', 'max:64'],
         ]);
 
+        $requestedFilters = [
+            'status' => $validated['status'] ?? null,
+            'start_mode' => $validated['start_mode'] ?? null,
+            'buy_in' => $validated['buy_in'] ?? null,
+            'players' => $validated['players'] ?? null,
+            'only_test' => $validated['only_test'] ?? false,
+        ];
+
+        $filters = $request->hasAny(LobbyFilterPreferenceService::FILTER_KEYS)
+            ? $preferenceService->normalize($requestedFilters, $request->user())
+            : $preferenceService->load($request->user());
+
         $payload = $payloadService->build(
-            [
-                'status' => $validated['status'] ?? null,
-                'start_mode' => $validated['start_mode'] ?? null,
-                'buy_in' => $validated['buy_in'] ?? null,
-                'players' => $validated['players'] ?? null,
-                'only_test' => $validated['only_test'] ?? false,
-            ],
+            $filters,
             $validated['room'] ?? null,
             $request->user(),
         );

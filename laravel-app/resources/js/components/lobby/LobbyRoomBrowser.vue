@@ -44,6 +44,7 @@ const metaState = ref({ ...(props.meta || {}) });
 const currentUserState = ref({ ...(props.currentUser || {}) });
 const selectedRoomCodeState = ref(props.selectedRoomCode || props.selectedRoom?.publicCode || null);
 const actionInProgressCode = ref(null);
+const isSavingFilters = ref(false);
 const toasts = ref([]);
 const isPolling = ref(false);
 const pollingError = ref('');
@@ -51,7 +52,7 @@ const lastUpdatedAt = ref(new Date());
 let pollingTimer = null;
 
 const showOnlyTestRoomsFilter = computed(() => {
-    return metaState.value?.phase3LocalTestHarnessEnabled === true;
+    return metaState.value?.canUseTestRoomFilter === true;
 });
 
 const roomCount = computed(() => {
@@ -131,9 +132,6 @@ function lobbyUrl(overrides = {}) {
 
     return queryString ? `/lobby?${queryString}` : '/lobby';
 }
-
-const applyFiltersUrl = computed(() => lobbyUrl());
-const resetFiltersUrl = computed(() => '/lobby');
 
 const roomList = computed(() => roomsState.value || []);
 
@@ -268,6 +266,24 @@ function currentFilterParams() {
     };
 }
 
+function filterSnapshot(filters) {
+    return {
+        status: filters.status || null,
+        start_mode: filters.start_mode || null,
+        buy_in: filters.buy_in || null,
+        players: filters.players || null,
+        only_test: Boolean(filters.only_test),
+    };
+}
+
+function syncFilterState(target, filters) {
+    target.status = filters?.status || '';
+    target.start_mode = filters?.start_mode || '';
+    target.buy_in = filters?.buy_in || '';
+    target.players = filters?.players || '';
+    target.only_test = Boolean(filters?.only_test);
+}
+
 function applyLobbyPayload(payload) {
     if (!payload) {
         return;
@@ -277,7 +293,59 @@ function applyLobbyPayload(payload) {
     metaState.value = { ...(payload.meta || {}) };
     currentUserState.value = { ...(payload.currentUser || {}) };
     selectedRoomCodeState.value = payload.selectedRoomCode || payload.selectedRoom?.publicCode || selectedRoomCodeState.value;
+
+    if (payload.filters && metaState.value?.canUseTestRoomFilter !== true && payload.filters.only_test !== true) {
+        filterState.only_test = false;
+        appliedFilterState.only_test = false;
+    }
+
     dispatchWalletUpdated(payload);
+}
+
+async function saveFilterPreferences(filters) {
+    const url = metaState.value?.preferencesUrl;
+
+    if (!url || isSavingFilters.value) {
+        return;
+    }
+
+    isSavingFilters.value = true;
+
+    try {
+        const response = await window.axios.put(url, {
+            ...filterSnapshot(filters),
+            room: null,
+        });
+
+        const normalizedFilters = response.data?.filters || response.data?.lobby?.filters;
+
+        syncFilterState(filterState, normalizedFilters);
+        syncFilterState(appliedFilterState, normalizedFilters);
+        selectedRoomCodeState.value = null;
+        applyLobbyPayload(response.data?.lobby);
+        window.history.replaceState({}, '', lobbyUrl());
+        lastUpdatedAt.value = new Date();
+        pollingError.value = '';
+        pushToast('success', response.data?.message || 'Lobbyfilter wurden gespeichert.');
+    } catch (error) {
+        pushToast('error', error?.response?.data?.message || 'Lobbyfilter konnten nicht gespeichert werden.');
+    } finally {
+        isSavingFilters.value = false;
+    }
+}
+
+function applyFilters() {
+    saveFilterPreferences(filterState);
+}
+
+function resetFilters() {
+    saveFilterPreferences({
+        status: null,
+        start_mode: null,
+        buy_in: null,
+        players: null,
+        only_test: false,
+    });
 }
 
 async function refreshLobbyRooms({ silent = true } = {}) {
@@ -509,19 +577,23 @@ onUnmounted(() => {
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <a
-                            :href="applyFiltersUrl"
+                        <button
+                            type="button"
                             class="rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-black text-slate-950 transition hover:bg-amber-300"
+                            :disabled="isSavingFilters"
+                            @click="applyFilters"
                         >
-                            Filter anwenden
-                        </a>
+                            {{ isSavingFilters ? 'Speichere...' : 'Filter anwenden' }}
+                        </button>
 
-                        <a
-                            :href="resetFiltersUrl"
+                        <button
+                            type="button"
                             class="rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                            :disabled="isSavingFilters"
+                            @click="resetFilters"
                         >
                             Zurücksetzen
-                        </a>
+                        </button>
                     </div>
                 </div>
             </article>

@@ -97,6 +97,7 @@ Bestätigt sind u.a.:
 
 - Vue-Island für die Lobby
 - Anzeige des authentifizierten Spielernamens im gemeinsamen Lobby-Header
+- persistente benutzerspezifische Lobbyfilter über `user_preferences`
 - Payload-API
 - Query-Service
 - Filter und Kategorien
@@ -215,6 +216,7 @@ Diese Bereiche werden in späteren Reset-Dokumenten behandelt.
 | Join | Implementiert |
 | Leave | Implementiert |
 | Polling | Implementiert |
+| Persistente Lobbyfilter | Implementiert |
 | HomeServer-Realtime | Vorbereitet |
 | Chat | Fachlich beschlossen |
 | Presence | Vorbereitet |

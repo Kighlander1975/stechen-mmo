@@ -8,6 +8,7 @@ use App\Http\Controllers\GameFinishController;
 use App\Http\Controllers\GamePlayController;
 use App\Http\Controllers\GamePlayStateController;
 use App\Http\Controllers\LobbyController;
+use App\Http\Controllers\LobbyPreferenceController;
 use App\Http\Controllers\LobbyRoomsController;
 use App\Http\Controllers\LobbyRoomJoinController;
 use App\Http\Controllers\LobbyRoomLeaveController;
@@ -75,6 +76,10 @@ Route::get('/lobby', LobbyController::class)
 Route::get('/lobby/rooms', LobbyRoomsController::class)
     ->middleware(['auth', 'verified'])
     ->name('lobby.rooms');
+
+Route::put('/lobby/preferences', LobbyPreferenceController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('lobby.preferences.update');
 
 
 Route::post('/lobby/rooms/{publicCode}/join', LobbyRoomJoinController::class)
