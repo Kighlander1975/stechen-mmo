@@ -129,6 +129,17 @@ Bereits fachlich beschlossen sind:
 Diese Regeln sind teilweise bereits umgesetzt und teilweise Grundlage
 für spätere Entwicklungsphasen.
 
+Abgleich mit dem Code (2026-11-16):
+
+- Implementiert: mehrere wartende Reservierungen (maximal 3),
+  Buy-in-Reservierung beim Join, kein Join bei laufender Teilnahme
+  (`playing`) in einem anderen Raum.
+- Nicht implementiert: Freigabe anderer Reservierungen beim Start des
+  führenden Raums und die Absicherung „nur ein gestartetes Spiel“ beim
+  Start. `GameRoomStartCoordinatorService` finalisiert einen Raum, ohne
+  andere Teilnahmen desselben Spielers zu prüfen. Siehe
+  `99_OFFENE_PUNKTE.md`.
+
 ---
 
 # 7. Eligibility

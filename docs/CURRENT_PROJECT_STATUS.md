@@ -30,6 +30,10 @@ Implementiert sind insbesondere:
 - `PrizePoolDistributionService`
 - KI-Spieler und Disconnect-Autopilot
 - Rankings, Tier-Berechnung und vollständige MMO-Auswertung
+- die Führungsregel beim Spielstart: Andere wartende Teilnahmen eines Spielers
+  werden beim Start nicht verlassen und ihre Reservierungen nicht freigegeben;
+  ein Spieler ist dadurch nicht gegen zwei gleichzeitig startende Spiele
+  abgesichert (Details in `docs/reset_dokumentation/99_OFFENE_PUNKTE.md`)
 
 Der vorhandene technische Finish-Harness ersetzt weder die Gewinnerermittlung
 der GameEngine noch ein echtes Settlement. Vorhanden sind lediglich die

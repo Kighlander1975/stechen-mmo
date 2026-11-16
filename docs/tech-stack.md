@@ -16,8 +16,6 @@ Examples:
 
 - Laravel should stay on Laravel 12.x
 - Vue should stay on Vue 3.x
-- Inertia.js should stay on Inertia 2.x
-- TypeScript should stay on TypeScript 5.x
 
 Major version upgrades should be documented before they are applied.
 
@@ -45,12 +43,13 @@ Git       2.45.1.windows.1
 
 ### Frontend
 
-- Vue 3.x
-- TypeScript 5.x
-- Inertia.js 2.x
+- Blade views with Vue 3.x islands (JavaScript)
 - Vite
 - Tailwind CSS
 - npm 11.x
+
+Inertia.js and TypeScript were part of the initial plan but were not
+adopted. See `docs/decisions.md` (2026-11-16).
 
 ### Realtime Strategy
 
@@ -80,7 +79,7 @@ Purpose:
 - Authentication
 - Game logic
 - Database persistence
-- Web frontend through Inertia/Vue
+- Web frontend through Blade views and Vue islands
 - Polling endpoints
 - Main application entry point
 

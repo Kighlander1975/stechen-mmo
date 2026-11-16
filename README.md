@@ -6,20 +6,22 @@ The repository is structured as a multi-component project with a Laravel web app
 
 ---
 
-## Planned Tech Stack
+## Tech Stack
 
 - Laravel 12
-- PHP 8.5
-- Vue 3
-- TypeScript
-- Inertia.js
+- PHP 8.5 (local development; `composer.json` requires `^8.2`)
+- Blade views with Vue 3 islands (JavaScript)
 - Tailwind CSS
 - MySQL / MariaDB
 - Vite
 - PHPUnit
-- Optional later: Vitest
-- Realtime phase 1: adaptive polling
-- Realtime phase 2: optional Node.js WebSocket service
+- Realtime: HTTP and adaptive polling
+
+Not used: Inertia.js and TypeScript were named in early planning but are not
+part of the implemented stack.
+
+Open: a later realtime service (WebSocket) and the hosting target are still
+under discussion.
 
 ---
 
@@ -61,7 +63,8 @@ It contains the main application, including:
 
 ### HomeServer
 
-The HomeServer directory is reserved for a later optional realtime component:
+The HomeServer directory is reserved for a later optional realtime component
+and is currently empty:
 
 ```text
 homeserver/
@@ -81,10 +84,15 @@ Official documentation lives in:
 docs/
 ```
 
-Current project documentation:
+Start here:
 
-- [Phase 1 Foundation](docs/PHASE_1_FOUNDATION.md)
+- [Current Project Status](docs/CURRENT_PROJECT_STATUS.md)
+- [Reset Documentation Overview](docs/reset_dokumentation/00_PROJECT_STATUS.md)
+- [Open Items](docs/reset_dokumentation/99_OFFENE_PUNKTE.md)
+- [Game Rules](docs/GAME_RULES.md)
 - [HomeServer Fallback Principle](docs/HOMESERVER_FALLBACK.md)
+
+Historical documents live in `docs/archiv/` and are not authoritative.
 
 Temporary local notes live in:
 
@@ -111,13 +119,7 @@ cd laravel-app
 php artisan test
 ```
 
-At the moment, the valid test command is:
-
-```text
-php artisan test
-```
-
-A Composer test script is currently not defined.
+`composer test` runs the same test suite.
 
 ---
 

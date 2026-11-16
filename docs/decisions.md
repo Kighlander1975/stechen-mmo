@@ -8,10 +8,10 @@ Decision:
 
 The repository root contains separate folders for the Laravel application and the HomeServer component.
 
-`	ext
+```text
 laravel-app/
 homeserver/
-`
+```
 
 Reason:
 
@@ -23,10 +23,10 @@ Decision:
 
 The repository contains two documentation folders:
 
-`	ext
+```text
 docs/
 _docs/
-`
+```
 
 - docs/ is tracked by Git and contains official project documentation.
 - _docs/ is ignored by Git and contains local notes, temporary ideas and daily planning.
@@ -57,3 +57,20 @@ The accepted baseline tech stack is:
 Reason:
 
 The stack should be modern, suitable for Laravel development, useful as a portfolio reference and compatible with the planned hosting environment.
+
+Status: partly superseded, see 2026-11-16.
+
+## 2026-11-16: Frontend Stack Aligned With Implementation
+
+Decision:
+
+The frontend is built with Blade views and Vue 3 islands in JavaScript.
+Inertia.js and TypeScript from the 2026-06-13 baseline are not part of the
+implemented stack. Vitest is not set up.
+
+Reason:
+
+The implementation uses the Blade and Vue-island architecture
+(`docs/FRONTEND_VUE_ISLANDS.md`); the code contains no Inertia.js and no
+TypeScript. This entry records the actual state so
+the baseline above is no longer read as current.

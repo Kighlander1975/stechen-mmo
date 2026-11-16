@@ -1,6 +1,6 @@
 # KB Source Index
 
-Stand: 2026-07-12
+Stand: 2026-07-12 (Abschnitt 3 mit dem Code abgeglichen am 2026-11-16)
 
 Dieses Dokument beschreibt, welche Projektdateien in die KI-Projekt-KB aufgenommen wurden, welche bewusst ausgeschlossen wurden und welche ausgeschlossenen Dateien bei Bedarf gezielt als Quelle nachgereicht werden können.
 
@@ -145,54 +145,49 @@ Der aktuelle Stand wurde gegen Projektdateien und vorhandene Tests plausibilisie
 - Tests existieren für Lobby, Wallet, Ledger und Raumversorgung.
 ```
 
-### Fachlich entschieden, aber noch nicht vollständig technisch umgesetzt
+### Fachlich entschieden: Umsetzungsstand (Abgleich mit Code 2026-11-16)
 
-Diese Punkte sind für die nächsten Implementierungen vorgemerkt und dürfen nicht als bereits vollständig umgesetzt interpretiert werden:
+Implementiert:
 
 ```text
 - mehrere Vorstart-Anmeldungen in verschiedenen Räumen;
-- nur ein laufendes Spiel pro Spieler;
+- maximal 3 wartende Räume pro Spieler
+  (GameRoomJoinService, fest als Konstante MAX_WAITING_PARTICIPATIONS_PER_USER);
+- kein Join, solange der Spieler in einem anderen Raum den Status `playing` hat;
+- Startphase mit MVP-Countdown von 10 Sekunden (GameRoom::STATUS_STARTING);
+- `starting_at` und `starts_at` werden beim Startauftrag gesetzt;
+- Config `config/game_rooms.php` mit Countdown und Teilnahmelimits;
+- GameRoomStartCoordinatorService: Startauftrag, Finalisierung, Buy-in-Commit beim
+  tatsächlichen Start, einmalige Rake-Buchung;
+- GameRoomCleanupService für alte cancelled rooms ohne Löschung von Ledger-Einträgen;
+- Controller-/UI-Integration für Join, Leave, Countdown und Room-Browser-Status.
+```
+
+Nicht implementiert:
+
+```text
 - zuerst startender Raum übernimmt Führung;
-- automatische Entfernung aus anderen wartenden Räumen;
-- 1:1-Freigabe anderer Buy-in-Reservierungen;
-- Startphase mit festem MVP-Countdown von 10 Sekunden;
-- `starting_at` für Gewinnerregel bei konkurrierenden Starts;
-- `starts_at` für UI-Countdown und Startfinalisierung;
-- Konfliktlösung per Startphasen-Zeitstempel;
-- maximal 3 wartende Räume pro Spieler;
-- maximal 1 aktiver/startender/laufender Raum pro Spieler;
-- spätere zentrale Config `config/game_rooms.php` für Countdown und Teilnahmelimits;
+- automatische Entfernung aus anderen wartenden Räumen beim Start;
+- 1:1-Freigabe anderer Buy-in-Reservierungen beim Start;
+- Konfliktlösung per `starting_at` (Tie-Breaker kleinere Raum-ID);
 - Abbruch oder Rücksetzung konkurrierender Räume;
-- UI-Hinweis bei nicht startendem Raum;
-- Chat nachgelagert;
-- Homeserver/WebSocket erst ab Alpha.
+- maximal 1 startender/laufender Raum pro Spieler beim Start
+  (die Finalisierung prüft andere Räume des Spielers nicht);
+- Auswertung von `max_waiting_rooms_per_player` und
+  `max_active_rooms_per_player` aus `config/game_rooms.php`
+  (Werte sind definiert, werden im Code aber nicht gelesen);
+- Chat (bewusst nachgelagert);
+- HomeServer/WebSocket.
 ```
 
-### Nächster Implementierungsblock
-
-Der nächste technische Block sollte voraussichtlich in dieser Reihenfolge laufen:
+Nicht geprüft:
 
 ```text
-Cancelled-Room-Cleanup, Startphase/StartCoordinator und danach UI-/Controller-Integration
+- UI-Hinweis bei nicht startendem Raum.
 ```
 
-Wahrscheinliche Bausteine:
-
-```text
-- Cleanup-Konzept und späterer Cleanup-Service für cancelled rooms;
-- sichere Löschung nur für alte cancelled rooms ohne verbliebene GameRoomPlayer;
-- keine Löschung von Ledger-Einträgen;
-- Config `config/game_rooms.php` für Start-Countdown und Teilnahmelimits;
-- Startphasen-Modellierung mit GameRoom::STATUS_STARTING;
-- Startphasen-Felder `starting_at` und `starts_at`;
-- StartCoordinator für Countdown, Konflikte und Finalisierung;
-- Konfliktregel: älteres `starting_at` gewinnt, Tie-Breaker kleinere Raum-ID;
-- Teilnahmelimit: maximal 3 wartende Räume pro Spieler;
-- Aktivlimit: maximal 1 starting/running Raum pro Spieler;
-- Buy-in-Capture beim tatsächlichen Spielstart;
-- danach Controller-/UI-Integration für Join, Leave, Cancel, Countdown und Room-Browser-Status;
-- Tests für Mehrfach-Vorstart, Teilnahmelimits, Startkonflikte, Reservierungsfreigabe, Countdown und Startfinalisierung.
-```
+Die offenen Punkte sind in `docs/reset_dokumentation/99_OFFENE_PUNKTE.md`
+übernommen.
 
 ---
 
