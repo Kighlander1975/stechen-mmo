@@ -44,3 +44,5 @@ pnpm-debug.log
 # Python cache files
 __pycache__/
 *.py[cod]
+# graphify knowledge graph output (lokal, nicht versioniert)
+graphify-out/
