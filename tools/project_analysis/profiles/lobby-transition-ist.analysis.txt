@@ -1,0 +1,80 @@
+Name:
+Lobby Transition IST-Analyse
+
+Purpose:
+Vollstaendige lesende Inventarisierung des aktuellen Uebergangs von der Lobby in ein laufendes Spiel.
+
+Output:
+_docs/analysis_output/lobby-transition-ist-analysis.txt
+
+ProjectRoot:
+.
+
+Mode:
+read-only
+
+Scope:
+- _docs/ai_context
+- docs
+- laravel-app
+- homeserver
+- tools/project_analysis
+
+Exclude:
+- .git
+- node_modules
+- vendor
+- storage
+- bootstrap/cache
+- public/build
+- _docs/analysis_output
+
+- laravel-app/.env
+- laravel-app/.env.testing
+- laravel-app/database/database.sqlite
+- laravel-app/.phpunit.result.cache
+- __pycache__
+AnalysisQuestions:
+- Welche Lobbyzustaende existieren?
+- Wie tritt ein Spieler einem wartenden Spiel bei?
+- Welche Voraussetzungen loesen den Spielstart aus?
+- Wo wird der Spielstart serverseitig entschieden?
+- Wie wird der Spielstart an den Client uebermittelt?
+- Welche Events, Broadcasts, Polling- oder Realtime-Mechanismen sind beteiligt?
+- Wie erfolgt Navigation oder Routing von der Lobby zum Spielfeld?
+- Wann und wo beginnt ein Countdown?
+- Welche sichtbaren Hinweise existieren beim Spielstart?
+- Welche Audio-, Fokus- oder Benachrichtigungsmechanismen existieren?
+- Wie verhaelt sich die Anwendung bei Reload, Reconnect und mehreren Browser-Tabs?
+- Wie wird eine laufende Partie fuer einen Benutzer erkannt?
+- Kann ein Benutzer mit laufender Partie neuen wartenden Spielen beitreten?
+- Kann ein Benutzer waehrend des eigenen Zuges innerhalb der Anwendung in die Lobby wechseln?
+- Welche Regeln gelten fuer Lobbyzugang, Chat, Raumansicht und Beobachtung laufender Spiele?
+- Welche automatisierten Tests decken diese Ablaeufe ab?
+- Welche Dokumentation beschreibt diese Ablaeufe?
+- Wo widersprechen sich Code, Tests und Dokumentation?
+- Welche unklaren, doppelten oder impliziten Zustandsmodelle bestehen?
+
+ReportSections:
+- Executive Summary
+- Analysierte Quellen
+- Aktueller End-to-End-Ablauf
+- Serverseitige Zustaende und Entscheidungen
+- Clientseitige Zustaende und Navigation
+- Realtime-, Event- und Synchronisationswege
+- Countdown, Aufmerksamkeit und Fokus
+- Laufende Partie und Lobbyberechtigungen
+- Reload-, Reconnect- und Multi-Tab-Verhalten
+- Testabdeckung
+- Dokumentationsabgleich
+- Widersprueche und offene Fragen
+- Risiken und priorisierte Schwachstellen
+- Relevante Dateien mit Begruendung
+
+EvidenceRequirements:
+- Jede Feststellung mit Dateipfad und Symbol, Klasse, Methode oder Zeilenbereich belegen.
+- Beobachtung, Interpretation und Empfehlung klar trennen.
+- Keine Implementierungsvorschlaege.
+- Keine Projektdateien veraendern.
+- Nicht belegbare Annahmen ausdruecklich kennzeichnen.
+- Code gilt bei Widerspruechen als massgebliche Quelle fuer den IST-Zustand.
