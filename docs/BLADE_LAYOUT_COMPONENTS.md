@@ -84,7 +84,7 @@ Nach Änderungen an `AppLayout.php`, Layout-Props oder dem Prop-Fluss ist dieser
 
 Der Befehl wird im Laravel-Pfad ausgeführt:
 
-`D:\Projekte\stechen-mmo\laravel-app`
+`E:\Projekte\stechen-mmo\laravel-app`
 
 ## Tests und Browser-Prüfung
 

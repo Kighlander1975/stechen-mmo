@@ -285,7 +285,7 @@ Nach Änderungen an `tailwind.config.js` sollte der laufende Vite-Devserver norm
 Typischer Ablauf:
 
 ```powershell
-cd "D:\Projekte\stechen-mmo\laravel-app"
+cd "E:\Projekte\stechen-mmo\laravel-app"
 npm run dev
 ```
 
@@ -299,7 +299,7 @@ npm run dev
 Für eine technische Prüfung vor Commit:
 
 ```powershell
-cd "D:\Projekte\stechen-mmo\laravel-app"
+cd "E:\Projekte\stechen-mmo\laravel-app"
 npm run build
 ```
 
@@ -310,14 +310,14 @@ npm run build
 Für Änderungen am Lobby-Raumbrowser sind sinnvoll:
 
 ```powershell
-cd "D:\Projekte\stechen-mmo\laravel-app"
+cd "E:\Projekte\stechen-mmo\laravel-app"
 npm run build
 ```
 
 Zusätzlich vor Commit, wenn Laravel-Projektstand geprüft werden soll:
 
 ```powershell
-cd "D:\Projekte\stechen-mmo\laravel-app"
+cd "E:\Projekte\stechen-mmo\laravel-app"
 composer test
 ```
 
