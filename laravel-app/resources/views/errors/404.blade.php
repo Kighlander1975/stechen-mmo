@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['headerEyebrow' => 'Fehler 404', 'headerTitle' => 'Seite nicht gefunden'])
 
 @section('title', 'Seite nicht gefunden')
 

@@ -271,4 +271,35 @@ class AccessControlTest extends TestCase
 
         $this->assertFalse(SystemSetting::phase3LocalTestHarnessIsEnabled());
     }
+
+    public function test_dev_test_routes_are_not_available_outside_local_environment(): void
+    {
+        $this->get('/vue-test')->assertNotFound();
+        $this->get('/api/app-status')->assertNotFound();
+
+        $this->get('/')
+            ->assertOk()
+            ->assertDontSee('Vue-Test öffnen');
+    }
+
+    public function test_error_page_header_names_the_error(): void
+    {
+        $this->get('/diese-seite-gibt-es-nicht')
+            ->assertNotFound()
+            ->assertSee('&quot;eyebrow&quot;:&quot;Fehler 404&quot;', false)
+            ->assertSee('&quot;title&quot;:&quot;Seite nicht gefunden&quot;', false);
+    }
+
+    public function test_profile_page_is_german(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/profile')
+            ->assertOk()
+            ->assertSee('Profilangaben')
+            ->assertSee('Passwort ändern')
+            ->assertSee('Konto löschen')
+            ->assertDontSee('Profile Information');
+    }
 }

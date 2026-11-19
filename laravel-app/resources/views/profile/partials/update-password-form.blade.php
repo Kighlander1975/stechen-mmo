@@ -5,11 +5,11 @@
         </p>
 
         <h2 class="mt-1 text-xl font-bold text-slate-100">
-            {{ __('Update Password') }}
+            Passwort ändern
         </h2>
 
         <p class="mt-2 text-sm leading-6 text-slate-400">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
+            Verwende ein langes, zufälliges Passwort, damit dein Konto sicher bleibt.
         </p>
     </header>
 
@@ -18,7 +18,7 @@
         @method('put')
 
         <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
+            <x-input-label for="update_password_current_password" value="Aktuelles Passwort" />
             <x-text-input
                 id="update_password_current_password"
                 name="current_password"
@@ -30,7 +30,7 @@
         </div>
 
         <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
+            <x-input-label for="update_password_password" value="Neues Passwort" />
             <x-text-input
                 id="update_password_password"
                 name="password"
@@ -42,7 +42,7 @@
         </div>
 
         <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
+            <x-input-label for="update_password_password_confirmation" value="Neues Passwort bestätigen" />
             <x-text-input
                 id="update_password_password_confirmation"
                 name="password_confirmation"
@@ -54,7 +54,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <x-primary-button>Speichern</x-primary-button>
 
             @if (session('status') === 'password-updated')
                 <p
@@ -63,7 +63,7 @@
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
                     class="text-sm font-medium text-emerald-300"
-                >{{ __('Saved.') }}</p>
+                >Gespeichert.</p>
             @endif
         </div>
     </form>

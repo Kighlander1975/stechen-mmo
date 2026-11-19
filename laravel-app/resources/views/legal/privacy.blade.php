@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['headerEyebrow' => 'Rechtliches', 'headerTitle' => 'Datenschutzbestimmungen'])
 
 @section('content')
     <section class="mx-auto max-w-4xl py-2 text-slate-100 sm:px-4 sm:py-12">

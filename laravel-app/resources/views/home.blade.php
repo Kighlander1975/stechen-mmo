@@ -23,9 +23,11 @@
                     Regeln ansehen
                 </a>
 
-                <a href="/vue-test" class="rounded-lg border border-slate-500 bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-emerald-300 hover:text-emerald-200">
-                    Vue-Test öffnen
-                </a>
+                @if (app()->isLocal())
+                    <a href="/vue-test" class="rounded-lg border border-dashed border-slate-500 bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-emerald-300 hover:text-emerald-200" title="Nur im Dev-Modus sichtbar">
+                        Vue-Test öffnen
+                    </a>
+                @endif
             </div>
         </div>
 

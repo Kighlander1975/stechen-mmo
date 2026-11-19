@@ -107,3 +107,6 @@ pwsh -File tools\dev\stop.ps1    # stoppt alles und entfernt public/hot
   „Stechen-MMO starten“ und „Stechen-MMO stoppen“ an.
 - Die Raumversorgung (`php artisan game-rooms:supply`) läuft derzeit nicht über
   den Scheduler und muss bei Bedarf manuell ausgeführt werden.
+- Nur bei `APP_ENV=local` registriert: `/vue-test` (Vue-Testseite) und
+  `/api/app-status` (nennt die Umgebung). Auf Staging und Live liefern beide
+  404; die Startseite verlinkt die Testseite nur im Dev-Modus.

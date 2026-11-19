@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['headerEyebrow' => 'Fehler 403', 'headerTitle' => 'Zugriff verweigert'])
 
 @section('title', 'Zugriff verweigert')
 

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['headerEyebrow' => 'Fehler 419', 'headerTitle' => 'Sitzung abgelaufen'])
 
 @section('title', 'Sitzung abgelaufen')
 

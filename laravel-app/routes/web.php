@@ -30,18 +30,21 @@ Route::view('/terms', 'legal.terms')->name('terms');
 
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 
-Route::get('/vue-test', function () {
-    return view('vue-test');
-});
+// Vue-Testseite und ihr Status-Endpunkt nur im Dev-Modus (APP_ENV=local); der Endpunkt nennt die Umgebung.
+if (app()->isLocal()) {
+    Route::get('/vue-test', function () {
+        return view('vue-test');
+    });
 
-Route::get('/api/app-status', function () {
-    return response()->json([
-        'app' => config('app.name', 'Stechen-MMO'),
-        'status' => 'ok',
-        'environment' => app()->environment(),
-        'version' => 'auth-foundation',
-    ]);
-});
+    Route::get('/api/app-status', function () {
+        return response()->json([
+            'app' => config('app.name', 'Stechen-MMO'),
+            'status' => 'ok',
+            'environment' => app()->environment(),
+            'version' => 'auth-foundation',
+        ]);
+    });
+}
 
 
 Route::middleware(['auth', 'permission:admin.access'])->prefix('admin')->name('admin.')->group(function (): void {
