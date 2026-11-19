@@ -155,6 +155,9 @@ Vorschlag als Diskussionsgrundlage für die spätere Server-Einrichtung:
 - Servereinrichtung reproduzierbar dokumentiert, damit der spätere Umzug auf
   einen eigenen Server ohne Wissensverlust möglich ist.
 
+Der vorhandene Server wurde am 2026-11-19 lesend inventarisiert:
+`docs/HETZNER_SERVER_INVENTORY.md`. Keine Konfiguration wurde verändert.
+
 ---
 
 ## 3. Lokale Abbildung (wie wir es auf dem Entwicklungsrechner lösen)
@@ -208,8 +211,8 @@ zurückstellen.
 |---|---|
 | Datenschutz-Verantwortung | Geklärt ist: Der Server ist auf die Firma eingetragen, der Projektinhaber ist Admin. Vor dem **öffentlichen** Betrieb (nicht für lokale Tests) zu klären: Wer ist Verantwortlicher im Sinne der DSGVO, und deckt der Vertrag mit Hetzner (Auftragsverarbeitung) den Betrieb des privaten Projekts ab? |
 | Domainname | Welche Hauptdomain? |
-| Server-Stack | Webserver, Prozessverwaltung (systemd oder PM2) und Node.js-Version auf dem Server; Grundlage ist die Server-Inventur |
-| Mehrkern-Nutzung | Aufteilung des Node.js-Spielservers auf mehrere Prozesse oder Worker Threads |
+| Server-Stack | Inventar vom 2026-11-19: Ubuntu 26.04, Apache/PHP-FPM, PHP 8.5.4, Node 24.22.3, MariaDB 11.8.6, Redis; systemd wird empfohlen. Details: `docs/HETZNER_SERVER_INVENTORY.md`. Konkrete VirtualHosts und Dienste erst zur Closed Beta einrichten. |
+| Mehrkern-Nutzung | 4 vCPUs bestätigt; Aufteilung des Node.js-Spielservers auf mehrere Prozesse oder Worker Threads beim Engine-Entwurf |
 | Polling als Rückfallebene | Bleibt Polling als Notlösung erhalten, wenn die Echtzeit-Verbindung abbricht, oder entfällt es ganz? |
 | Ordner des Spielservers | Bisher ist `homeserver/` im Repository reserviert. Umbenennen (zum Beispiel `game-server/`)? |
 | Redis | Ob und ab wann; siehe Abschnitt 3 |

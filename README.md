@@ -86,6 +86,7 @@ Start here:
 - [Open Items](docs/reset_dokumentation/99_OFFENE_PUNKTE.md)
 - [Game Rules](docs/GAME_RULES.md)
 - [Hosting, Betrieb und Spielserver](docs/HOSTING_UND_BETRIEB.md)
+- [Hetzner-Server-Inventar](docs/HETZNER_SERVER_INVENTORY.md)
 
 Historical documents live in `docs/archiv/` and are not authoritative.
 
