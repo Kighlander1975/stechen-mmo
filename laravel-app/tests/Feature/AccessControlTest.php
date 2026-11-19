@@ -47,7 +47,8 @@ class AccessControlTest extends TestCase
             ->assertSee('&quot;showWalletPanel&quot;:true', false)
             ->assertSee('&quot;playMoneyBalanceUnits&quot;:0', false)
             ->assertSee('&quot;playMoneyBalanceDisplay&quot;:&quot;0 St$&quot;', false)
-            ->assertSee('&quot;realMoneyBalanceDisplay&quot;:&quot;Deaktiviert&quot;', false);
+            ->assertSee('&quot;devMode&quot;:false', false)
+            ->assertDontSee('realMoney', false);
 
         $this->assertDatabaseCount('wallets', 0);
     }

@@ -7,11 +7,7 @@
 
         <title>{{ config('app.name', 'Stechen MMO') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
-
-        <!-- Scripts -->
+        <!-- Scripts (Schrift ist selbst gehostet, siehe resources/css/app.css) -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased bg-slate-950 text-slate-100">
@@ -52,10 +48,6 @@
                             Regeln
                         </a>
                     </nav>
-
-                    <p class="mt-6 text-center text-xs leading-5 text-slate-500">
-                        Hinweis: Echtgeld- und Wallet-Funktionen sind in dieser Entwicklungsphase noch nicht aktiv.
-                    </p>
                 </div>
             </main>
         </div>

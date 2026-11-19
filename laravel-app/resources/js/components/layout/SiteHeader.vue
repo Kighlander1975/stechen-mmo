@@ -38,19 +38,19 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    devMode: {
+        type: Boolean,
+        default: false,
+    },
     wallet: {
         type: Object,
         default: () => ({
             playMoneyBalanceUnits: 0,
             playMoneyBalanceDisplay: '0 St$',
-            realMoneyEnabled: false,
-            realMoneyBalanceDisplay: 'Deaktiviert',
-            cashierEnabled: false,
         }),
     },
 });
 
-const walletMode = ref('play');
 const walletState = ref({ ...(props.wallet || {}) });
 
 const statusToneClasses = {
@@ -61,41 +61,17 @@ const statusToneClasses = {
     admin: 'border-red-400/30 bg-red-400/10 text-red-300',
 };
 
-const walletPanelClasses = computed(() => {
-    if (walletMode.value === 'real') {
-        return 'border-red-400/30 bg-red-500/10 hover:border-red-300/60 hover:bg-red-500/15';
-    }
-
-    return 'border-emerald-400/30 bg-emerald-400/10 hover:border-emerald-300/60 hover:bg-emerald-400/15';
-});
-
-const walletModeLabel = computed(() => (walletMode.value === 'play' ? 'Spielgeld' : 'Echtgeld'));
-
 const walletBalanceLabel = computed(() => {
-    if (walletMode.value === 'play') {
-        return walletState.value?.primaryDisplay
-            || walletState.value?.availableDisplay
-            || walletState.value?.playMoneyBalanceDisplay
-            || '0 St$';
-    }
-
-    return walletState.value?.realMoneyBalanceDisplay || 'Deaktiviert';
+    return walletState.value?.primaryDisplay
+        || walletState.value?.availableDisplay
+        || walletState.value?.playMoneyBalanceDisplay
+        || '0 St$';
 });
 
-const walletHint = computed(() => {
-    if (walletMode.value === 'play') {
-        return 'Klick: Echtgeld-Status anzeigen';
-    }
-
-    return 'Klick: Spielgeld-Stand anzeigen';
-});
-
-const walletClaimStatus = computed(() => {
-    if (walletMode.value === 'play') {
-        return 'Login-Bonus: vorbereitet';
-    }
-
-    return 'Echtgeld-Wallet: nicht aktiv';
+const walletReservedLabel = computed(() => {
+    return (walletState.value?.reservedUnits || 0) > 0
+        ? `${walletState.value.reservedDisplay} reserviert`
+        : '';
 });
 
 function statusClass(tone) {
@@ -112,10 +88,6 @@ function navClass(item) {
     }
 
     return 'text-slate-300 transition hover:text-amber-300';
-}
-
-function toggleWalletMode() {
-    walletMode.value = walletMode.value === 'play' ? 'real' : 'play';
 }
 
 function handleWalletUpdated(event) {
@@ -191,61 +163,40 @@ onUnmounted(() => {
                 <div class="flex w-full justify-end gap-3">
                     <div
                         v-if="showWalletPanel"
-                        class="min-h-[4.75rem] min-w-0 flex-1 basis-0 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 shadow-lg shadow-black/10"
-                        style="font-size: 80%;"
+                        class="min-h-[5.5rem] min-w-0 flex-1 basis-0 rounded-2xl border border-slate-700 bg-slate-900/70 px-5 py-3 shadow-lg shadow-black/10"
                     >
-                        <div class="flex h-full items-center justify-center text-center">
-                            <p class="text-[0.875em] font-medium italic text-slate-500">
-                                Info-Platzhalter
-                            </p>
-                        </div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Info
+                        </p>
+                        <p class="mt-1 text-sm italic text-slate-500">
+                            Info-Platzhalter
+                        </p>
                     </div>
-                    <button
+
+                    <div
                         v-if="showWalletPanel"
-                        type="button"
-                        class="group min-w-0 flex-1 basis-0 rounded-2xl border px-4 py-3 text-left shadow-lg shadow-black/15 transition focus:outline-none focus:ring-2 focus:ring-amber-300/70"
-                        style="font-size: 80%;"
-                        :class="walletPanelClasses"
-                        :aria-label="`${walletModeLabel}-Anzeige. ${walletHint}`"
-                        @click="toggleWalletMode"
+                        class="min-w-0 flex-1 basis-0 rounded-2xl border border-emerald-400/35 bg-slate-900/70 px-5 py-3 shadow-lg shadow-black/15"
                     >
-                        <div class="flex h-full min-w-0 flex-col justify-between gap-2">
-                            <div class="min-w-0">
-                                <p
-                                    class="truncate text-[0.875em] font-black uppercase tracking-wide"
-                                    :class="walletMode === 'play' ? 'text-emerald-300' : 'text-red-300'"
-                                >
-                                    {{ walletModeLabel }}
-                                </p>
+                        <p class="truncate text-xs font-bold uppercase tracking-wider text-emerald-300">
+                            Spielgeld verfügbar
+                        </p>
 
-                                <p class="mt-0.5 truncate text-[1.125em] font-semibold tracking-tight text-slate-100">
-                                    {{ walletBalanceLabel }}
-                                </p>
+                        <p class="mt-0.5 truncate text-2xl font-bold tabular-nums text-slate-100">
+                            {{ walletBalanceLabel }}
+                        </p>
 
-                                <p class="mt-1 truncate text-[0.8125em] font-medium text-slate-500 transition group-hover:text-slate-300">
-                                    {{ walletHint }}
-                                </p>
-                            </div>
+                        <p v-if="walletReservedLabel" class="truncate text-sm tabular-nums text-slate-400">
+                            {{ walletReservedLabel }}
+                        </p>
 
-                            <div class="flex min-w-0 items-center justify-start gap-2">
-                                <span
-                                    class="max-w-full truncate rounded-full border px-2 py-0.5 text-[0.75em] font-semibold uppercase tracking-wide"
-                                    :class="walletMode === 'play'
-                                        ? 'border-amber-300/20 bg-amber-300/10 text-amber-200/80'
-                                        : 'border-slate-600/60 bg-slate-950/60 text-slate-500'"
-                                >
-                                    {{ walletClaimStatus }}
-                                </span>
-
-                                <span
-                                    v-if="walletMode === 'real'"
-                                    class="truncate text-[0.75em] font-semibold uppercase tracking-wide text-slate-600"
-                                >
-                                    Kasse später
-                                </span>
-                            </div>
-                        </div>
-                    </button>
+                        <span
+                            v-if="devMode"
+                            class="mt-1 inline-block max-w-full truncate rounded-full border border-dashed border-amber-300/40 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-200/80"
+                            title="Nur im Dev-Modus sichtbar: Platz für spätere Bonus-Informationen"
+                        >
+                            Login-Bonus: vorbereitet
+                        </span>
+                    </div>
 
                     <div
                         v-else-if="statusLabel"

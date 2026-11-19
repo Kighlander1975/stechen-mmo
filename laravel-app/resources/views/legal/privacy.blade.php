@@ -21,7 +21,7 @@
             </p>
 
             <p class="mt-4 leading-7 text-slate-300">
-                Echtgeld-, Wallet-, Zahlungs- und Auszahlungsfunktionen sind aktuell nicht aktiv.
+                Zahlungsdaten werden nicht verarbeitet.
             </p>
 
             <div class="mt-8 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-100">

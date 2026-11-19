@@ -18,8 +18,7 @@
 
                     <p class="mt-2 max-w-3xl text-sm leading-6 text-amber-100">
                         Stechen MMO befindet sich aktuell in einer frühen Entwicklungsphase.
-                        Registrierung, Login und Spielerkonto sind aktiv. Echtgeld-, Wallet-,
-                        Zahlungs- und Auszahlungsfunktionen sind derzeit deaktiviert.
+                        Registrierung, Login, Spielerkonto und Spielgeld sind aktiv.
                     </p>
                 </div>
 
@@ -100,10 +99,6 @@
                                 Täglichen Bonus abholen
                             </button>
                         </form>
-
-                        <p class="text-xs text-emerald-100/70">
-                            Spielgeld-Bonus, keine Echtgeld-Funktion.
-                        </p>
                     @else
                         <span class="inline-flex rounded-full border border-slate-600 bg-slate-950/50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
                             Nicht verfügbar
@@ -145,15 +140,15 @@
 
             <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-black/20">
                 <p class="text-sm font-medium text-slate-400">
-                    Wallet
+                    Spielgeld
                 </p>
 
                 <h3 class="mt-2 text-2xl font-bold text-slate-100">
-                    Deaktiviert
+                    Aktiv
                 </h3>
 
                 <p class="mt-3 text-sm leading-6 text-slate-400">
-                    Es sind aktuell keine Einzahlungen, Auszahlungen oder Echtgeld-Funktionen aktiv.
+                    Mit deinem Spielgeld kaufst du dich in der Lobby in Spielräume ein.
                 </p>
             </div>
         </section>
@@ -222,22 +217,6 @@
                             Strukturierte Wettbewerbe mit festen Regeln.
                         </p>
                     </div>
-
-                    <div class="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-                        <div class="flex items-center justify-between gap-3">
-                            <h3 class="font-semibold text-red-100">
-                                Echtgeld / Wallet
-                            </h3>
-
-                            <span class="rounded-full bg-red-500/20 px-2 py-1 text-xs text-red-200">
-                                deaktiviert
-                            </span>
-                        </div>
-
-                        <p class="mt-2 text-sm leading-6 text-red-100/80">
-                            Diese Funktionen bleiben bis zur rechtlichen und technischen Freigabe ausgeschaltet.
-                        </p>
-                    </div>
                 </div>
             </div>
 
@@ -295,8 +274,8 @@
 
             <p class="mt-2 text-sm leading-6 text-slate-400">
                 Dieses Dashboard dient zunächst als Account- und Entwicklungsübersicht.
-                Spielmechaniken, Wirtschaftssysteme, Wallets und Echtgeld-Funktionen werden erst nach
-                separater technischer, rechtlicher und sicherheitsbezogener Prüfung aktiviert.
+                Weitere Spielfunktionen werden schrittweise nach technischer, rechtlicher und
+                sicherheitsbezogener Prüfung aktiviert.
             </p>
 
             <div class="mt-4 flex flex-wrap gap-3 text-sm">

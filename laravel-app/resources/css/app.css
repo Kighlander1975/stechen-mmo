@@ -1,3 +1,7 @@
+/* Selbst gehostete Schrift (DSGVO): wird von Vite gebündelt, kein externer Font-Server. */
+@import '@fontsource/atkinson-hyperlegible/400.css';
+@import '@fontsource/atkinson-hyperlegible/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

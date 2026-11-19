@@ -93,6 +93,7 @@
         'statusTone' => $statusTone ?: ($user ? 'success' : 'neutral'),
         'navItems' => $navItems,
         'showWalletPanel' => $showWalletPanel,
+        'devMode' => app()->isLocal(),
         'wallet' => [
             'playMoneyBalanceUnits' => $playMoneyBalanceUnits,
             'playMoneyBalanceDisplay' => $playMoneyBalanceDisplay,
@@ -103,9 +104,6 @@
             'reservedDisplay' => $playMoneyReservedDisplay,
             'availableDisplay' => $playMoneyBalanceDisplay,
             'primaryDisplay' => $playMoneyBalanceDisplay,
-            'realMoneyEnabled' => false,
-            'realMoneyBalanceDisplay' => 'Deaktiviert',
-            'cashierEnabled' => false,
         ],
         'logout' => $user ? [
             'label' => 'Logout',
@@ -170,9 +168,6 @@
                             </p>
                             <p class="mt-1 text-2xl font-black text-slate-100">
                                 {{ $playMoneyBalanceDisplay }}
-                            </p>
-                            <p class="mt-1 text-xs text-slate-400">
-                                JavaScript aktiviert den Umschalter.
                             </p>
                         </div>
                     </div>

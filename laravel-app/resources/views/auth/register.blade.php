@@ -135,8 +135,7 @@
         </div>
 
         <div class="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs leading-5 text-amber-100">
-            Mit der Registrierung wird zunächst nur ein Spielkonto erstellt.
-            Echtgeld-, Wallet- und Zahlungsfunktionen sind noch nicht aktiv.
+            Mit der Registrierung wird ein Spielkonto mit Spielgeld-Startguthaben erstellt.
         </div>
 
         <div>
@@ -171,7 +170,7 @@
 
             <p>
                 Stechen MMO befindet sich derzeit in einer frühen Entwicklungsphase.
-                Echtgeld-, Wallet-, Zahlungs- und Auszahlungsfunktionen sind aktuell nicht aktiv.
+                Spielgeld (St$) ist ein virtuelles Spielguthaben ohne Geldwert.
             </p>
 
             <p>
@@ -214,7 +213,7 @@
             </p>
 
             <p>
-                Echtgeld-, Wallet-, Zahlungs- und Auszahlungsfunktionen sind aktuell nicht aktiv.
+                Zahlungsdaten werden nicht verarbeitet.
             </p>
 
             <p>
@@ -257,8 +256,7 @@
             </p>
 
             <p>
-                Für die aktuelle Entwicklungsphase gilt: Echtgeld-, Wallet-, Zahlungs- und Auszahlungsfunktionen
-                sind nicht aktiv.
+                Gespielt wird ausschließlich mit Spielgeld (St$), einem virtuellen Spielguthaben ohne Geldwert.
             </p>
         </div>
 

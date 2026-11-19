@@ -57,6 +57,28 @@ Die Vue-Komponente rendert:
 - Eyebrow
 - Seitentitel
 - Status-Badge
+- für eingeloggte Nutzer den Info-Kasten (Inhalt noch offen) und den
+  Spielgeld-Kasten
+
+Spielgeld-Kasten (Stand 2026-11-19): zeigt das verfügbare Spielgeld
+(Kontostand minus Reservierungen) und darunter den reservierten Betrag. Er ist
+keine Schaltfläche mehr; Umschalter und Echtgeld-Anzeige wurden entfernt. Die
+Lobby aktualisiert ihn über das Browser-Event `stechen:wallet-updated`.
+
+## Dev-Modus
+
+`site-header.blade.php` übergibt `devMode` (`app()->isLocal()`, also
+`APP_ENV=local` in der `.env`). Elemente, die nur als Merkhilfe während der
+Entwicklung dienen, werden nur bei `devMode` gerendert, zum Beispiel das
+Badge „Login-Bonus: vorbereitet“ (Platzhalter für spätere Bonus-Infos). Auf
+Staging und Live (`APP_ENV` ungleich `local`) sind sie ausgeblendet.
+
+## Schrift
+
+Projektweite Schrift ist Atkinson Hyperlegible, selbst gehostet über das
+npm-Paket `@fontsource/atkinson-hyperlegible` (Import in
+`resources/css/app.css`, Tailwind `fontFamily.sans`). Vite bündelt die
+Schriftdateien; es gibt keine Anfragen an externe Font-Server (DSGVO).
 
 ## Datenübergabe Blade zu Vue
 
