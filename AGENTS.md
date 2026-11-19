@@ -30,8 +30,8 @@ Vor jeder Entwicklungs-, Architektur-, Dokumentations-, Projekt- oder Git-Aufgab
 
 ## Aktueller Arbeitsmodus
 
-Der Dokumentations-Reset ist abgeschlossen.
+Der Dokumentations-Reset ist abgeschlossen. Lobby-Review und Umbau nach Zielbild v3 (Desktop und mobil) sind umgesetzt (Stand 2026-11-19).
 
-Der nächste Schwerpunkt ist ein fachliches und UX-seitiges Lobby-Review.
+Der nächste Schwerpunkt sind die Lücken im „Drumherum“ vor der GameEngine (`docs/reset_dokumentation/99_OFFENE_PUNKTE.md`). Führungsregel beim Spielstart und Preispool-Wallet betreffen Geld und benötigen vor der Umsetzung eine ausdrückliche Bestätigung.
 
-Noch keine Lobby-Änderungen beginnen, bevor der Projektinhaber das gewünschte Zielbild beschrieben und den ersten atomaren Patch bestätigt hat.
+Hosting, Umgebungen, Deployment und die Spielserver-Architektur (Node.js, Variante B) sind in `docs/HOSTING_UND_BETRIEB.md` festgehalten. Keine Zugangsdaten in Dokumentation oder Repository.

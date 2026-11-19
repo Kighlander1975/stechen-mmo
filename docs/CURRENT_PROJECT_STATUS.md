@@ -39,12 +39,26 @@ Der vorhandene technische Finish-Harness ersetzt weder die Gewinnerermittlung
 der GameEngine noch ein echtes Settlement. Vorhanden sind lediglich die
 technischen Abschluss-, Rake-, Wallet-/Ledger- und Orchestrierungsgrundlagen.
 
+Seit 2026-11-19 zusätzlich implementiert:
+
+- Lobby nach Zielbild v3 für Desktop und Handy (Tischliste, eigene Tische als
+  fester Block, Tischdetails mit Mini-Pokertisch, Bottom-Sheets mobil)
+- mobile Ansicht aller Nicht-Admin-Seiten, selbst gehostete Schrift
+- lokaler Start und Stopp ohne VS Code (`tools/dev/`)
+
+## Fachlich beschlossen, nicht implementiert
+
+Hosting auf Hetzner mit Staging und Produktion, Domains über ALL-INKL und
+ein Node.js-Spielserver für das laufende Spiel (Variante B). Details und
+offene Einzelentscheidungen: `docs/HOSTING_UND_BETRIEB.md`.
+
 ## Nächster Schwerpunkt
 
-Als nächstes wird die Lobby gründlich fachlich und UX-seitig geprüft. Danach
-werden die offenen Punkte aus
-`docs/reset_dokumentation/99_OFFENE_PUNKTE.md` priorisiert umgesetzt. Keine
-Zukunftsfunktion gilt allein aufgrund einer Planung als implementiert.
+Vor Beginn der GameEngine werden die Lücken im „Drumherum“ geschlossen
+(Raumversorgung, Führungsregel beim Start, Preispool-Wallet, Aufräumen
+hängender Räume, Teilnahmelimits), siehe
+`docs/reset_dokumentation/99_OFFENE_PUNKTE.md`. Keine Zukunftsfunktion gilt
+allein aufgrund einer Planung als implementiert.
 
 ## Maßgebliche Dokumentation
 
@@ -52,6 +66,8 @@ Zukunftsfunktion gilt allein aufgrund einer Planung als implementiert.
 - `docs/reset_dokumentation/00_PROJECT_STATUS.md` und die Reset-Dokumente 01 bis
   10 für den domänenspezifischen Ist-Stand
 - `docs/reset_dokumentation/99_OFFENE_PUNKTE.md` für offene Themen
+- `docs/HOSTING_UND_BETRIEB.md` für Hosting, Umgebungen, Deployment und die
+  Spielserver-Architektur
 - die weiterhin aktiven technischen und fachlichen Referenzen direkt unter
   `docs/`
 

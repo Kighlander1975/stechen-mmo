@@ -137,6 +137,13 @@ MMO-Auswertung
 Die GameEngine bleibt dadurch unabhängig von Wallet-, Reward- und
 Infrastrukturkomponenten.
 
+Fachlich beschlossen (2026-11-19): Die GameEngine wird in einem
+Node.js-Spielserver umgesetzt, der das laufende Spiel führt (Variante B,
+`docs/HOSTING_UND_BETRIEB.md`). Dieser Vertrag gilt unverändert; die
+Übergaben „Spielorchestrierung → GameEngine“ und „GameEngine → Settlement“
+werden zu signierten, idempotenten Aufrufen zwischen Laravel und Node.js.
+Umsetzung erst nach Abschluss des „Drumherums“.
+
 ---
 
 # 10. Definition of Done

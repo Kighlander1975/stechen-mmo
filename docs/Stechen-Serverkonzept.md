@@ -1,5 +1,11 @@
 # Architektur- und Fallback-Konzept für Kartenspiel auf ALL-INKL + optionalem HomeServer
 
+> **Status (2026-11-19): Als Zielbild überholt.** Hosting erfolgt auf einem
+> Hetzner-Server, ALL-INKL liefert nur noch Domains; einen HomeServer gibt es
+> nicht mehr, der Node.js-Spielserver ist Kernbestandteil. Maßgeblich ist
+> `docs/HOSTING_UND_BETRIEB.md`. Weiter gültige Einzelprinzipien sind dort in
+> Abschnitt 6 genannt.
+
 Stand: 13.06.2026
 
 ## 1. Ausgangslage

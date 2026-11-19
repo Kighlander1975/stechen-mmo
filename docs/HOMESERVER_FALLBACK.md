@@ -3,6 +3,12 @@
 Stand: Juni 2026  
 Status: Architekturentscheidung für Phase 1
 
+> **Status (2026-11-19): In Teilen überholt.** Einen HomeServer gibt es nicht
+> mehr; der Node.js-Spielserver ist kein optionaler Beschleuniger, sondern
+> führt das laufende Spiel (Variante B). Maßgeblich ist
+> `docs/HOSTING_UND_BETRIEB.md`. Weiter gültig bleiben Polling als
+> Rückfallebene für Lobby und Status sowie idempotente Aktionen.
+
 ---
 
 ## 1. Ziel

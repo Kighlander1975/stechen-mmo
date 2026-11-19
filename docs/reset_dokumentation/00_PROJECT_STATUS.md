@@ -19,7 +19,7 @@ implementiert dargestellt.
 | 01 Registrierung | überwiegend implementiert; Eligibility und Rechtstext-Historisierung offen |
 | 02 Wallets und Ledger | Grundlage implementiert; Betriebs- und Reconciliation-Themen offen |
 | 03 Reward-System | implementiert |
-| 04 Lobby | implementierte Kernfunktionen; erneutes Fach- und UX-Review erforderlich |
+| 04 Lobby | implementiert; Review und Umbau nach Zielbild v3 (Desktop und mobil) am 2026-11-19 |
 | 05 Spielräume | Kern-Lifecycle vor Spielstart implementiert, Erweiterungen offen |
 | 06 Spielzyklus | technische Orchestrierung und Finish-Harness vorhanden |
 | 07 Settlement | fachlich geplant, technisch nur Grundlagen vorbereitet |
@@ -32,14 +32,15 @@ Klarstellungen:
 - Die GameEngine ist nicht implementiert.
 - Echtes Settlement und Prize Distribution sind nicht implementiert.
 - KI-Spieler und Disconnect-Autopilot sind nicht implementiert.
-- Die Lobby ist implementiert, muss aber vor weiterer Entwicklung erneut
-  fachlich und UX-seitig geprüft werden.
+- Die Lobby ist implementiert und wurde am 2026-11-19 überarbeitet.
+- Hosting auf Hetzner und ein Node.js-Spielserver sind fachlich beschlossen,
+  aber nicht umgesetzt (`docs/HOSTING_UND_BETRIEB.md`).
 
 ## Offene Punkte und nächster Schwerpunkt
 
 Die verbindliche Sammlung offener Themen steht in `99_OFFENE_PUNKTE.md`.
-Nächster Entwicklungsschwerpunkt ist ein gründliches Lobby-Review; anschließend
-werden die offenen Punkte priorisiert umgesetzt. In diesem Reset wurden keine
+Nächster Entwicklungsschwerpunkt sind die Lücken im „Drumherum“ vor der
+GameEngine (siehe `99_OFFENE_PUNKTE.md`, hohe Priorität). In diesem Reset wurden keine
 offenen Produktfeatures implementiert.
 
 ## Maßgebliche Dokumente

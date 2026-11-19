@@ -6,6 +6,10 @@
 **Rolle im Projektkontext:** Optionaler HomeServer / möglicher späterer PowerUp-Node  
 **Primäre Projektstrategie:** Laravel / ALL-INKL als autoritative Hauptplattform
 
+> **Status (2026-11-19): Historisch.** Der HomeServer ist kein Baustein des
+> Projekts mehr, ALL-INKL ist keine Zielplattform mehr. Aktuelles Zielbild:
+> `docs/HOSTING_UND_BETRIEB.md`.
+
 ---
 
 ## 1. Zweck dieses Dokuments

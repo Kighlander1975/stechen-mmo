@@ -55,6 +55,7 @@ docs\lobby-room-browser-vue-state.md
 docs\FRONTEND_VUE_ISLANDS.md
 docs\BLADE_LAYOUT_COMPONENTS.md
 docs\HOMESERVER_FALLBACK.md
+docs\HOSTING_UND_BETRIEB.md
 docs\development\VISUAL_REVIEW_RUN.md
 ```
 

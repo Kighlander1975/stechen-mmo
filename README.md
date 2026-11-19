@@ -2,7 +2,7 @@
 
 stechen-mmo is an independent multiplayer card game project.
 
-The repository is structured as a multi-component project with a Laravel web application and a separate optional HomeServer component.
+The repository is structured as a multi-component project with a Laravel web application and a planned Node.js game server (see `docs/HOSTING_UND_BETRIEB.md`).
 
 ---
 
@@ -30,7 +30,7 @@ under discussion.
 ```text
 stechen-mmo/
 ├── laravel-app/   # Laravel web application
-├── homeserver/    # Optional Node.js/WebSocket HomeServer component
+├── homeserver/    # Reserved for the planned Node.js game server (empty)
 ├── docs/          # Official project documentation, tracked by Git
 ├── _docs/         # Local/private notes, ignored by Git
 ├── README.md
@@ -61,18 +61,13 @@ It contains the main application, including:
 - application services
 - tests
 
-### HomeServer
+### Node.js Game Server (planned)
 
-The HomeServer directory is reserved for a later optional realtime component
-and is currently empty:
-
-```text
-homeserver/
-```
-
-The MVP must not depend on this component being available.
-
-Laravel remains the authoritative application. HTTP and polling are the required fallback mechanism.
+The `homeserver/` directory is currently empty and reserved for the planned
+Node.js game server. It will run the live game (GameEngine, WebSocket) while
+Laravel stays authoritative for accounts, lobby, rooms and money. The former
+optional HomeServer concept is no longer planned. Details:
+`docs/HOSTING_UND_BETRIEB.md`.
 
 ---
 
@@ -90,7 +85,7 @@ Start here:
 - [Reset Documentation Overview](docs/reset_dokumentation/00_PROJECT_STATUS.md)
 - [Open Items](docs/reset_dokumentation/99_OFFENE_PUNKTE.md)
 - [Game Rules](docs/GAME_RULES.md)
-- [HomeServer Fallback Principle](docs/HOMESERVER_FALLBACK.md)
+- [Hosting, Betrieb und Spielserver](docs/HOSTING_UND_BETRIEB.md)
 
 Historical documents live in `docs/archiv/` and are not authoritative.
 
@@ -125,13 +120,9 @@ php artisan test
 
 ## Realtime Principle
 
-For the MVP:
+Today the lobby and room status are updated by polling through Laravel.
 
-```text
-HTTP first.
-Polling is allowed.
-Realtime is optional.
-Laravel is authoritative.
-```
-
-A later HomeServer or WebSocket service may improve update delivery, but must not become the sole source of truth for game state or wallet data.
+Target (decided 2026-11-19, not implemented): all updates in realtime through
+the planned Node.js game server, which also runs the live game. Wallet and
+ledger data stay exclusively in Laravel. Details:
+`docs/HOSTING_UND_BETRIEB.md`.

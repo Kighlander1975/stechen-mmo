@@ -125,7 +125,9 @@ Laravel ist die verbindliche Instanz für:
 - Reward-Gutschriften
 - administrative Korrekturen
 
-Ein späterer HomeServer darf keine autoritativen Wallet- oder Ledger-Entscheidungen treffen.
+Der geplante Node.js-Spielserver darf keine Wallet- oder Ledger-Buchungen
+vornehmen; Geld bucht ausschließlich Laravel (Entscheidung 2026-11-19, siehe
+`docs/HOSTING_UND_BETRIEB.md`).
 
 ---
 
@@ -718,7 +720,7 @@ Daher gelten insbesondere:
 - keine wiederholbare Operation ohne Idempotenz
 - keine konkurrierende Änderung ohne Transaktions- und Sperrkonzept
 - keine Echtgeldinterpretation des aktuellen Spielgeldsystems
-- keine Wallet-Autorität im HomeServer
+- keine Wallet-Autorität im Node.js-Spielserver
 
 Änderungen an Datenmodell, Migrationen oder Kernbuchungslogik benötigen vor Umsetzung eine ausdrückliche Bestätigung.
 

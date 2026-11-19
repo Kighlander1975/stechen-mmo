@@ -63,18 +63,48 @@ gelesen. `GameRoomJoinService` nutzt eine eigene Konstante.
 
 ---
 
+## Weitere Lücken im „Drumherum“ (Code-Analyse 2026-11-19)
+
+Ebenfalls vor Beginn der GameEngine zu schließen. Ist-Stand laut Code:
+
+- **Raumversorgung läuft nicht automatisch.** `game-rooms:supply` ist weder
+  im Scheduler (`routes/console.php`) noch in der Lobby angebunden und muss
+  manuell ausgeführt werden.
+- **Der Netto-Preispool wird auf keinem Konto gebucht (kritisch, Geld).**
+  `GameRoomStartCoordinatorService` bucht beim Start den vollen Buy-in jedes
+  Spielers ab (`commit`), schreibt aber nur den Rake einem Gegenkonto
+  (Rake-Wallet) gut. Die übrigen Beträge existieren danach in keinem Wallet.
+  Benötigt wird ein Preispool- beziehungsweise Treuhand-Wallet bis zum
+  Settlement.
+- **Abbruch und Aufräumen haben keinen Aufrufer im Betrieb.**
+  `GameRoomCancellationService` und `GameRoomCleanupService` sind
+  implementiert und getestet, werden aber nirgends ausgelöst. Nicht volle
+  Räume und ihre Reservierungen bleiben unbegrenzt bestehen. Der
+  Verlassensgrund `logout` ist definiert, aber ungenutzt.
+- **Ein Start kann dauerhaft hängen.** Schlägt das Abbuchen eines Spielers
+  fehl, wird die Transaktion zurückgerollt; der Raum bleibt auf `starting`
+  und der Scheduler versucht es endlos erneut. `cancelRoom()` erlaubt den
+  Status `starting` nicht.
+- **Englische Fehlermeldungen.** Exceptions der Join-/Leave-Services und
+  Validierungsmeldungen erscheinen englisch in der Oberfläche (keine
+  deutschen Sprachdateien, `APP_LOCALE=en`).
+
+---
+
 ## Lobby
 
-Vor der eigentlichen GameEngine soll die Lobby fachlich und
-benutzerseitig überprüft werden.
+Lobby-Review und Umbau nach Zielbild v3 (Desktop und mobil) wurden am
+2026-11-19 umgesetzt, siehe `docs/lobby-room-browser-vue-state.md`.
 
-Insbesondere:
+Noch offen:
 
-- Informationsdarstellung
-- Benutzerführung
-- Zustandsübergänge
-- Übergang Lobby → Spiel
-- Vorbereitung auf die GameEngine
+- Hinweis „wird freigegeben, sobald X startet“ an eigenen Tischen (setzt die
+  Führungsregel voraus)
+- Namen der Mitspieler am Mini-Pokertisch (Backend liefert nur die Anzahl)
+- deutsche Fehlermeldungen beim Beitreten und Verlassen
+- Gäste-Ansicht der Lobby (fachlich bestätigt 2026-11-19): Gäste sehen Tische
+  und ihren Zustand, aber keinen Chat und können nicht beitreten. Im Code
+  verlangt `/lobby` derzeit Login und bestätigte E-Mail-Adresse.
 
 ---
 
@@ -104,7 +134,9 @@ umzusetzen.
 
 # 4. Mittlere Priorität
 
-- HomeServer- und Realtime-Ausbau
+- Node.js-Spielserver und Echtzeit (fachlich beschlossen, Variante B)
+- Hosting auf Hetzner, Staging/Produktion, Deployment (fachlich beschlossen;
+  offene Einzelentscheidungen in `docs/HOSTING_UND_BETRIEB.md`, Abschnitt 4)
 - Presence
 - Chat
 - Matchmaking

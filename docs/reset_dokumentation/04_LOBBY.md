@@ -118,8 +118,13 @@ Bestätigt sind u.a.:
 Bereits fachlich beschlossen sind:
 
 - Laravel bleibt autoritativ.
-- HomeServer dient später nur als Realtime-Beschleuniger.
-- Gäste dürfen öffentliche Räume sehen.
+- Echtzeit für alle Lobby-Aktualisierungen, Chat und Presence kommt später
+  über den Node.js-Spielserver (Ziel 2026-11-19); ob Polling als Notlösung
+  bleibt, ist offen.
+- Gäste dürfen sehen, was in der Lobby passiert (Tische und ihr Zustand), aber
+  nicht den Chat; der Chat steht nur eingeloggten Spielern zur Verfügung
+  (bestätigt 2026-11-19). **Ist-Stand im Code:** `/lobby` verlangt Login und
+  bestätigte E-Mail-Adresse; Gäste werden zum Login umgeleitet.
 - Sichtbarkeit ist von Betretbarkeit getrennt.
 - Spieler dürfen mehrere wartende Raumreservierungen besitzen.
 - Pro Spieler darf nur ein gestartetes Spiel aktiv sein.
@@ -177,7 +182,8 @@ Die Lobby ist bereits auf regelmäßige Aktualisierung vorbereitet.
 
 Polling ist implementiert.
 
-Realtime über HomeServer/WebSockets bleibt eine spätere Optimierung.
+Echtzeit über den geplanten Node.js-Spielserver (WebSocket) folgt später,
+siehe `docs/HOSTING_UND_BETRIEB.md`.
 
 Laravel bleibt weiterhin die Quelle der Wahrheit.
 
@@ -230,7 +236,7 @@ Diese Bereiche werden in späteren Reset-Dokumenten behandelt.
 | Persistente Lobbyfilter | Implementiert |
 | Lobby-Layout nach Zielbild v3 (2026-11-19) | Implementiert, ohne Leiste „Deine Tische“ |
 | Dev-Only-Elemente (`APP_ENV=local`) | Implementiert |
-| HomeServer-Realtime | Vorbereitet |
+| Echtzeit über Node.js-Spielserver | Fachlich beschlossen |
 | Chat | Fachlich beschlossen |
 | Presence | Vorbereitet |
 | Matchmaking | Fachlich beschlossen |

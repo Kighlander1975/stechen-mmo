@@ -1,5 +1,10 @@
 \# Infrastructure Status
 
+> **Status (2026-11-19): Historisch.** Beschreibt den früheren HomeServer
+> (Heimrechner), der kein Baustein des Projekts mehr ist. Aktuelles Zielbild:
+> `docs/HOSTING_UND_BETRIEB.md`. Die Abschnitte zu GitHub-SSH und dem lokalen
+> SSH-Agent beschreiben die Entwicklungsumgebung und können weiter zutreffen.
+
 
 
 Stand: 2026-06-13

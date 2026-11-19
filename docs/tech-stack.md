@@ -53,15 +53,17 @@ adopted. See `docs/decisions.md` (2026-11-16).
 
 ### Realtime Strategy
 
-Phase 1:
+Updated 2026-11-19 (see `docs/HOSTING_UND_BETRIEB.md`):
 
-- Adaptive polling through Laravel endpoints
-
-Phase 2:
-
-- Optional Node.js WebSocket service
-- HomeServer component may be introduced later
-- Laravel remains authoritative for game state
+- Today: lobby and status use polling through Laravel endpoints
+  (implemented).
+- Target: all updates in realtime through the Node.js game server, including
+  lobby and status (decided, not implemented). Whether polling stays as an
+  emergency fallback is open.
+- Live game: Node.js game server with WebSocket (decided, not implemented).
+- Laravel remains authoritative for accounts, lobby, rooms and money; the
+  Node.js game server is authoritative for the live game state.
+- The former HomeServer component is no longer planned.
 
 ## Components
 
@@ -83,21 +85,18 @@ Purpose:
 - Polling endpoints
 - Main application entry point
 
-### HomeServer
+### Node.js Game Server (planned)
 
-Location:
-
-```text
-homeserver/
-```
+Location: currently reserved as `homeserver/` (empty). Renaming the folder is
+an open decision.
 
 Purpose:
 
-- Optional future realtime service
-- Node.js/WebSocket service
-- Not authoritative for game state
-- Polling fallback remains available
-- May be added after the Laravel polling implementation works
+- Runs the live game (GameEngine) and its realtime communication
+- Persists every game action as an event for crash recovery
+- Never moves money; hands the result back to Laravel
+
+Status: decided, not implemented. See `docs/HOSTING_UND_BETRIEB.md`.
 
 ## Installation Rules
 
