@@ -5,6 +5,7 @@
     'statusTone' => null,
     'showWalletPanel' => false,
     'playMoneyBalanceUnits' => 0,
+    'mobileCompact' => false,
 ])
 
 @php
@@ -94,6 +95,8 @@
         'navItems' => $navItems,
         'showWalletPanel' => $showWalletPanel,
         'devMode' => app()->isLocal(),
+        'userName' => $user?->name,
+        'mobileCompact' => filter_var($mobileCompact, FILTER_VALIDATE_BOOLEAN),
         'wallet' => [
             'playMoneyBalanceUnits' => $playMoneyBalanceUnits,
             'playMoneyBalanceDisplay' => $playMoneyBalanceDisplay,

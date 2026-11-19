@@ -40,10 +40,11 @@
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <x-flash-toast />
 
-    {{-- fitViewport: Seite ab lg genau fensterhoch, Footer bleibt sichtbar, Inhalt füllt den Rest (z. B. Lobby). --}}
+    {{-- fitViewport (z. B. Lobby): Seite genau bildschirmhoch, Inhalt füllt den Rest.
+         Ab lg bleibt der Footer sichtbar; darunter app-artig ohne Footer und mit kompaktem Kopf. --}}
     <div @class([
         'min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950',
-        'lg:flex lg:h-screen lg:min-h-[720px] lg:flex-col' => $fitViewport,
+        'flex h-[100dvh] min-h-0 flex-col lg:h-screen lg:min-h-[720px]' => $fitViewport,
     ])>
         <x-site-header
             :eyebrow="$headerEyebrow ?? null"
@@ -52,12 +53,13 @@
             :status-tone="$headerStatusTone ?? null"
             :show-wallet-panel="$showWalletPanel"
             :play-money-balance-units="$playMoneyBalanceUnits"
+            :mobile-compact="$fitViewport"
         />
 
         <main @class([
-            'mx-auto w-full max-w-[1600px] px-6 py-10',
-            'min-h-[calc(100vh-145px)]' => ! $fitViewport,
-            'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col' => $fitViewport,
+            'mx-auto w-full max-w-[1600px]',
+            'min-h-[calc(100vh-145px)] px-4 py-6 sm:px-6 lg:py-10' => ! $fitViewport,
+            'flex min-h-0 flex-1 flex-col lg:px-6 lg:py-10' => $fitViewport,
         ])>
             @hasSection('content')
                 @yield('content')
@@ -66,8 +68,8 @@
             @endif
         </main>
 
-        <footer class="shrink-0 border-t border-slate-800">
-            <div class="mx-auto max-w-[1600px] px-6 py-6 text-sm text-slate-500">
+        <footer @class(['shrink-0 border-t border-slate-800', 'hidden lg:block' => $fitViewport])>
+            <div class="mx-auto max-w-[1600px] px-4 py-6 text-sm text-slate-500 sm:px-6">
                 &copy; {{ date('Y') }} Stechen-MMO
             </div>
         </footer>

@@ -24,8 +24,9 @@ Implementiert:
   Bildschirmen mit der Fensterhöhe wächst.
 - Filter als kleine Chips, die sofort wirken und pro Benutzer gespeichert
   werden: Tischgröße (2 / 3–4 / 5–6 / 7–11), Buy-in, Status, Startmodus sowie
-  „Nur Testräume“ für berechtigte Phase-3-Testbenutzer. „Zurücksetzen“
-  erscheint nur bei aktivem Filter.
+  „Nur Testräume“ für berechtigte Phase-3-Testbenutzer. Der Chip
+  „↺ Zurücksetzen“ ist immer sichtbar und ohne aktiven Filter gedämpft und
+  deaktiviert.
 - Pro Zeile: Name mit Hinweisen (Dabei, Startet m:ss, Test), Plätze als
   Punkte (gelb = eigener Platz, grau = belegt, Ring = frei), Buy-in,
   Gewinnpool und eine Aktion (Beitreten, Zu teuer, Platz n, Zum Tisch oder
@@ -121,6 +122,40 @@ Beide Bereiche reservieren mit `scrollbar-gutter: stable` gleich viel Platz
 für den Scrollbalken, damit die Spalten exakt übereinanderstehen. Der
 Zeilenaufbau existiert nur einmal (gemeinsame Schleife über beide Bereiche).
 Namen brechen nicht um, sondern werden gekürzt.
+
+---
+
+## Mobile Ansicht (unter `lg`, Stand 2026-11-19)
+
+Umgesetzt nach `_docs/images/lobby-mobil-entwurf-v1.png` (nicht versioniert),
+zunächst nur für die Lobby:
+
+- Seite app-artig genau bildschirmhoch (`100dvh`), kein Seiten-Footer.
+- Kompakter Kopf (`SiteHeader` mit `mobileCompact`): Logo mit Benutzername
+  darunter, Spielgeld mit reserviertem Betrag, Menü-Knopf mit
+  „Angemeldet als …“, allen Navigationslinks und Logout.
+  Seitentitel und Info-Kasten entfallen mobil.
+- Filterleiste: Knopf „Filter“ mit Zahl aktiver Filter und Schnellwahl der
+  Tischgröße. Der Knopf öffnet ein Filter-Sheet mit allen Gruppen (Chips
+  wirken sofort, „x Tische anzeigen“ schließt nur).
+- Liste randlos mit zweizeiligen Zeilen: Name mit Hinweisen, Sitzpunkte und
+  „n / max · Platz“ bzw. „· Pool“, rechts Buy-in und Aktion. Eigene Tische
+  bleiben wie am Desktop als fester Block oben.
+- Tisch antippen öffnet die Details als Bottom-Sheet (Mini-Pokertisch oben,
+  Buy-in und Gewinnpool nebeneinander, Aktionen). Schließen per Tippen auf den
+  Hintergrund oder den Griff oder per Wischen nach unten.
+- Start-Banner über der Liste, sobald ein eigener Tisch startet (Countdown,
+  „Zum Tisch“).
+- Dev-Reiter „Spielfeld“ und Chat-Platzhalter sind mobil ausgeblendet; der
+  Raumcode erscheint im Dev-Modus nur im Detail-Sheet.
+- Animationen (Vue `<Transition>`): Sheets gleiten von unten herein und
+  blenden dabei auf, Hintergrund und Start-Banner blenden ein und aus, das
+  Menü im Kopf klappt von oben auf. Bei „Bewegung reduzieren“
+  (`motion-reduce`) ohne Animation. Damit das Detail-Sheet beim Schließen
+  nicht leer herausgleitet, zeigt es bis zum Ende der Animation den zuletzt
+  gewählten Tisch (`detailRoom`). Die Desktop-Erkennung (`isDesktop`) nutzt
+  dieselbe Grenze wie Tailwind `lg` (1024px); auf dem Desktop wird nichts
+  animiert.
 
 ---
 

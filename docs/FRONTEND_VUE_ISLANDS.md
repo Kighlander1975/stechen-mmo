@@ -65,6 +65,16 @@ Spielgeld-Kasten (Stand 2026-11-19): zeigt das verfügbare Spielgeld
 keine Schaltfläche mehr; Umschalter und Echtgeld-Anzeige wurden entfernt. Die
 Lobby aktualisiert ihn über das Browser-Event `stechen:wallet-updated`.
 
+Handy-Kopf (unter `lg`, alle Seiten mit `x-site-header`, Stand 2026-11-19):
+Eine Zeile mit Logo, Benutzername (`userName`), Spielgeld und Menü-Knopf
+ersetzt die Navigation; Gäste sehen statt des Spielgelds den Knopf
+„Registrieren“. Das Menü gleitet unter dem Kopf hervor nach unten und beginnt
+bei eingeloggten Benutzern mit „Angemeldet als …“. Der Seitentitel bleibt als
+schlichte Überschrift; Info-, Spielgeld- und Status-Kasten erscheinen erst ab
+`lg`. Mit `mobileCompact` (Layout-Option `fitViewport`, derzeit nur die
+Lobby) entfällt mobil zusätzlich der Seitentitel. Ab `lg` ist der Kopf
+unverändert. Ab `lg` und auf allen anderen Seiten bleibt der Kopf unverändert.
+
 ## Dev-Modus
 
 `site-header.blade.php` übergibt `devMode` (`app()->isLocal()`, also

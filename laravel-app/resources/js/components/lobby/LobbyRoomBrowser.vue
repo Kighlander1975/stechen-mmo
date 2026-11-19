@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps({
     rooms: {
@@ -195,6 +195,65 @@ const tableSections = computed(() => {
 });
 
 const tableColumns = ['w-[36%]', 'w-[20%]', 'w-[13%]', 'w-[14%]', 'w-[17%]'];
+
+// Mobile Ansicht (unter lg): Filter-Sheet, Schnellwahl Tischgröße, Start-Banner, Detail-Sheet.
+// Gleiche Grenze wie Tailwind `lg`; nur mobil werden die Sheets ein- und ausgeblendet.
+const desktopQuery = window.matchMedia('(min-width: 1024px)');
+const isDesktop = ref(desktopQuery.matches);
+const mobileFilterOpen = ref(false);
+
+// Beim Schließen ist die Auswahl sofort leer; das Sheet zeigt bis zum Ende der Animation den letzten Tisch.
+const lastSelectedRoom = ref(null);
+watch(selectedRoomDetails, (room) => {
+    if (room) {
+        lastSelectedRoom.value = room;
+    }
+});
+const detailRoom = computed(() => selectedRoomDetails.value || (isDesktop.value ? null : lastSelectedRoom.value));
+
+function onDesktopChange(event) {
+    isDesktop.value = event.matches;
+}
+
+// Animationsklassen der mobilen Sheets und des Hintergrunds (bei „Bewegung reduzieren“ ohne Animation).
+const fadeTransition = {
+    enterActiveClass: 'transition-opacity duration-200 ease-out motion-reduce:transition-none',
+    enterFromClass: 'opacity-0',
+    leaveActiveClass: 'transition-opacity duration-200 ease-in motion-reduce:transition-none',
+    leaveToClass: 'opacity-0',
+};
+const sheetTransition = {
+    enterActiveClass: 'transition duration-300 ease-out motion-reduce:transition-none',
+    enterFromClass: 'translate-y-full opacity-0',
+    leaveActiveClass: 'transition duration-200 ease-in motion-reduce:transition-none',
+    leaveToClass: 'translate-y-full opacity-0',
+};
+const quickFilterGroup = filterGroups[0];
+let sheetTouchStartY = null;
+
+const activeFilterCount = computed(() => {
+    return ['status', 'start_mode', 'buy_in', 'players'].filter((key) => filterState[key]).length
+        + (filterState.only_test ? 1 : 0);
+});
+
+const startingOwnRoom = computed(() => {
+    return roomList.value.find((room) => room.isStarting && participationOf(room).isParticipating) || null;
+});
+
+function onSheetTouchStart(event) {
+    sheetTouchStartY = event.touches[0]?.clientY ?? null;
+}
+
+// Nach unten wischen schließt das Detail-Sheet.
+function onSheetTouchEnd(event) {
+    const endY = event.changedTouches[0]?.clientY ?? null;
+
+    if (sheetTouchStartY !== null && endY !== null && endY - sheetTouchStartY > 60) {
+        selectedRoomCodeState.value = null;
+    }
+
+    sheetTouchStartY = null;
+}
 
 const lastUpdatedDisplay = computed(() => {
     return lastUpdatedAt.value
@@ -570,6 +629,8 @@ function rowAriaLabel(room) {
 }
 
 onMounted(() => {
+    desktopQuery.addEventListener('change', onDesktopChange);
+
     pollingTimer = window.setInterval(() => {
         refreshLobbyRooms();
     }, 3000);
@@ -580,6 +641,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    desktopQuery.removeEventListener('change', onDesktopChange);
     window.clearInterval(pollingTimer);
     window.clearInterval(clockTimer);
     pollingTimer = null;
@@ -588,8 +650,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <section class="relative flex min-h-0 flex-1 flex-col gap-4 tabular-nums" aria-label="Spiellobby">
-        <div class="pointer-events-none fixed right-6 top-6 z-50 flex w-full max-w-sm flex-col gap-3">
+    <section class="relative flex min-h-0 flex-1 flex-col gap-2 tabular-nums lg:gap-4" aria-label="Spiellobby">
+        <div class="pointer-events-none fixed inset-x-4 top-4 z-[60] flex flex-col gap-3 sm:left-auto sm:right-6 sm:top-6 sm:w-full sm:max-w-sm">
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
@@ -615,10 +677,57 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
-            <!-- Tischliste -->
-            <article class="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 shadow-2xl shadow-black/20">
-                <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-800 px-4 py-3">
+        <!-- Mobil: Start-Banner, wenn einer der eigenen Tische startet -->
+        <Transition v-bind="fadeTransition">
+        <div
+            v-if="startingOwnRoom"
+            class="mx-2.5 mt-2 flex items-center gap-3 rounded-xl border border-amber-400 bg-gradient-to-r from-amber-400/25 to-amber-400/10 px-3 py-2 lg:hidden"
+        >
+            <b class="text-xl text-amber-300">{{ countdownDisplay(startingOwnRoom) }}</b>
+            <p class="min-w-0 flex-1 text-sm text-slate-100">
+                <b>{{ startingOwnRoom.name }}</b> ist voll und startet gleich
+            </p>
+            <button
+                v-if="actionsOf(startingOwnRoom).showOpenGame"
+                type="button"
+                class="shrink-0 rounded-lg bg-amber-400 px-3 py-1 text-sm font-bold text-slate-950"
+                @click="openGame(startingOwnRoom)"
+            >
+                Zum Tisch
+            </button>
+        </div>
+        </Transition>
+
+        <div class="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-4">
+            <!-- Tischliste (mobil randlos, ab lg als Karte) -->
+            <article class="flex min-h-0 flex-col overflow-hidden bg-slate-900/80 lg:rounded-2xl lg:border lg:border-slate-800 lg:shadow-2xl lg:shadow-black/20">
+                <!-- Mobil: Filter-Knopf und Schnellwahl Tischgröße -->
+                <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-slate-800 px-3 py-2.5 lg:hidden">
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-full border border-amber-400 px-3 py-0.5 text-sm font-bold text-amber-300"
+                        @click="mobileFilterOpen = true"
+                    >
+                        Filter
+                        <span v-if="activeFilterCount" class="ml-1 rounded-full bg-amber-400 px-1.5 text-slate-950">{{ activeFilterCount }}</span>
+                    </button>
+                    <button
+                        v-for="option in quickFilterGroup.options"
+                        :key="`quick-${option.value}`"
+                        type="button"
+                        class="shrink-0 rounded-full border px-2.5 py-0.5 text-sm transition disabled:cursor-wait"
+                        :class="filterState.players === option.value
+                            ? 'border-amber-400 bg-amber-400 font-bold text-slate-950'
+                            : 'border-slate-700 bg-slate-800/70 text-slate-300'"
+                        :aria-pressed="filterState.players === option.value"
+                        :disabled="isSavingFilters"
+                        @click="selectFilter('players', option.value)"
+                    >
+                        {{ option.label }}
+                    </button>
+                </div>
+
+                <div class="hidden flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-800 px-4 py-3 lg:flex">
                     <div
                         v-for="group in filterGroups"
                         :key="group.key"
@@ -659,13 +768,16 @@ onUnmounted(() => {
 
                     <div class="ml-auto flex items-center gap-3 text-sm text-slate-400">
                         <button
-                            v-if="!filtersAreDefault"
                             type="button"
-                            class="underline-offset-4 transition hover:text-amber-300 hover:underline disabled:cursor-wait"
-                            :disabled="isSavingFilters"
+                            class="rounded-full border px-2.5 py-0.5 text-[0.8125rem] transition disabled:cursor-default"
+                            :class="filtersAreDefault
+                                ? 'border-slate-800 text-slate-600'
+                                : 'border-amber-400/60 text-amber-300 hover:border-amber-300 hover:bg-amber-400/10'"
+                            :disabled="filtersAreDefault || isSavingFilters"
+                            :title="filtersAreDefault ? 'Keine Filter aktiv' : 'Alle Filter zurücksetzen'"
                             @click="resetFilters"
                         >
-                            Zurücksetzen
+                            ↺ Zurücksetzen
                         </button>
                         <span><b class="text-slate-100">{{ roomCount }}</b> Tische</span>
                     </div>
@@ -685,12 +797,12 @@ onUnmounted(() => {
                     v-for="section in (roomList.length ? tableSections : [])"
                     :key="section.key"
                     :class="section.scrolls
-                        ? 'max-h-[60vh] min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] lg:max-h-none'
+                        ? 'min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]'
                         : 'shrink-0 overflow-y-hidden bg-slate-800/40 [scrollbar-gutter:stable]'
                             + (section.rooms.length ? ' border-b-2 border-amber-400/45' : '')"
                     :aria-label="section.scrolls ? 'Verfügbare Tische' : 'Deine Tische'"
                 >
-                    <table class="w-full table-fixed text-left">
+                    <table class="hidden w-full table-fixed text-left lg:table">
                         <colgroup>
                             <col v-for="width in tableColumns" :key="width" :class="width">
                         </colgroup>
@@ -799,56 +911,162 @@ onUnmounted(() => {
                             </tr>
                         </tbody>
                     </table>
+
+                    <!-- Mobil: zweizeilige Zeilen statt Tabellenspalten -->
+                    <div class="lg:hidden">
+                        <div
+                            v-for="room in section.rooms"
+                            :key="`m-${room.publicCode}`"
+                            class="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t border-slate-800 px-3.5 py-2.5 first:border-t-0"
+                            :class="roomIsSelected(room) ? 'bg-amber-400/10 shadow-[inset_4px_0_0_rgb(251_191_36)]' : ''"
+                            role="button"
+                            :aria-label="rowAriaLabel(room)"
+                            @click="toggleRoomSelection(room)"
+                        >
+                            <div class="min-w-0">
+                                <p class="flex min-w-0 items-center gap-1.5">
+                                    <span class="min-w-0 truncate text-base font-bold text-slate-100">{{ room.name }}</span>
+                                    <span
+                                        v-if="participationOf(room).isParticipating"
+                                        class="shrink-0 rounded-full bg-emerald-400/15 px-2 text-xs font-bold text-emerald-300"
+                                    >Dabei</span>
+                                    <span
+                                        v-if="room.isStarting"
+                                        class="shrink-0 whitespace-nowrap rounded-full bg-amber-400/15 px-2 text-xs font-bold text-amber-300"
+                                    >{{ countdownDisplay(room) }}</span>
+                                    <span
+                                        v-if="room.isTest"
+                                        class="shrink-0 rounded-full border border-amber-400/30 px-2 text-xs font-bold text-amber-300"
+                                    >Test</span>
+                                </p>
+                                <p class="mt-0.5 flex items-center gap-1.5 text-sm text-slate-400">
+                                    <span class="inline-flex shrink-0 gap-[3px]" aria-hidden="true">
+                                        <i
+                                            v-for="(seat, index) in seatsOf(room)"
+                                            :key="index"
+                                            class="block h-2.5 w-2.5 rounded-full border-2"
+                                            :class="{
+                                                'border-amber-400 bg-amber-400': seat === 'me',
+                                                'border-slate-400 bg-slate-400': seat === 'taken',
+                                                'border-slate-600': seat === 'free',
+                                            }"
+                                        ></i>
+                                    </span>
+                                    <span class="truncate">
+                                        {{ room.playersDisplay }} ·
+                                        {{ participationOf(room).isParticipating
+                                            ? `Platz ${participationOf(room).seatNumber || '-'}`
+                                            : `Pool ${room.prizePoolDisplay}` }}
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="font-bold text-slate-100">{{ room.buyInDisplay }}</p>
+                                <p v-if="roomRowState(room) === 'seated'" class="text-xs text-slate-400">Pool {{ room.prizePoolDisplay }}</p>
+                                <button
+                                    v-else-if="roomRowState(room) === 'join'"
+                                    type="button"
+                                    class="mt-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-100 disabled:cursor-wait disabled:opacity-60"
+                                    :disabled="isActionRunning(room)"
+                                    @click.stop="joinRoom(room)"
+                                >
+                                    {{ isActionRunning(room) ? 'Prüfe …' : 'Beitreten' }}
+                                </button>
+                                <span
+                                    v-else-if="roomRowState(room) === 'too-expensive'"
+                                    class="mt-1 inline-block rounded-lg border border-dashed border-slate-700 px-3 py-1 text-sm text-slate-500"
+                                >Zu teuer</span>
+                                <button
+                                    v-else-if="roomRowState(room) === 'open-game'"
+                                    type="button"
+                                    class="mt-1 rounded-lg bg-amber-400 px-3 py-1 text-sm font-bold text-slate-950"
+                                    @click.stop="openGame(room)"
+                                >
+                                    Zum Tisch
+                                </button>
+                                <p v-else class="text-xs text-slate-400">{{ room.statusDisplay }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-4 py-2.5 text-sm text-slate-400">
-                    <span v-if="allRoomsStartWhenFull">Alle Tische starten, sobald alle Plätze besetzt sind.</span>
-                    <span v-else></span>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3.5 py-2 text-xs text-slate-400 lg:px-4 lg:py-2.5 lg:text-sm">
+                    <span class="lg:hidden">{{ roomCount }} Tische</span>
+                    <span v-if="allRoomsStartWhenFull" class="hidden lg:inline">Alle Tische starten, sobald alle Plätze besetzt sind.</span>
+                    <span v-else class="hidden lg:inline"></span>
                     <span :class="pollingError ? 'text-red-300' : ''">
                         {{ pollingError || `Aktualisiert ${lastUpdatedDisplay}` }}
                     </span>
                 </div>
             </article>
 
-            <!-- Rechte Spalte: ausgewählter Tisch und (später) Chat -->
-            <aside class="flex min-h-0 flex-col gap-4">
-                <section class="shrink-0 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20" aria-live="polite">
-                    <template v-if="selectedRoomDetails">
+            <!-- Rechte Spalte: ausgewählter Tisch und (später) Chat. Mobil wird der Tisch zum Bottom-Sheet. -->
+            <aside class="lg:flex lg:min-h-0 lg:flex-col lg:gap-4">
+                <Transition v-bind="fadeTransition">
+                    <div
+                        v-if="!isDesktop && selectedRoomDetails"
+                        class="fixed inset-0 z-40 bg-black/60"
+                        aria-hidden="true"
+                        @click="selectedRoomCodeState = null"
+                    ></div>
+                </Transition>
+
+                <!-- Desktop: immer sichtbare Karte. Mobil: Bottom-Sheet, nur bei Auswahl, gleitet herein. -->
+                <Transition v-bind="isDesktop ? {} : sheetTransition">
+                    <section
+                        v-if="isDesktop || selectedRoomDetails"
+                        class="shadow-2xl shadow-black/20"
+                        :class="isDesktop
+                            ? 'shrink-0 rounded-2xl border border-slate-800 bg-slate-900/80 p-5'
+                            : 'fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t border-slate-700 bg-slate-900 px-5 pb-5 pt-2.5'"
+                        aria-live="polite"
+                    >
+                    <template v-if="detailRoom">
+                        <div
+                            class="-mx-5 -mt-2.5 mb-2 px-5 pb-1 pt-2.5 lg:hidden"
+                            @touchstart.passive="onSheetTouchStart"
+                            @touchend="onSheetTouchEnd"
+                            @click="selectedRoomCodeState = null"
+                        >
+                            <div class="mx-auto h-1.5 w-11 rounded-full bg-slate-600" title="Schließen"></div>
+                        </div>
+
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ausgewählter Tisch</p>
-                                <h2 class="truncate text-2xl font-bold text-slate-100">{{ selectedRoomDetails.name }}</h2>
-                                <p class="text-sm text-slate-400">{{ selectedSubline(selectedRoomDetails) }}</p>
+                                <h2 class="truncate text-2xl font-bold text-slate-100">{{ detailRoom.name }}</h2>
+                                <p class="text-sm text-slate-400">{{ selectedSubline(detailRoom) }}</p>
                                 <p
                                     v-if="devMode"
                                     class="mt-1 inline-block rounded border border-dashed border-slate-600 px-1.5 font-mono text-xs text-slate-500"
                                     title="Nur im Dev-Modus sichtbar: Raumcode als Prüfsumme"
-                                >{{ selectedRoomDetails.publicCode }}</p>
+                                >{{ detailRoom.publicCode }}</p>
                             </div>
 
-                            <div v-if="selectedRoomDetails.isStarting" class="shrink-0 text-right text-amber-300">
-                                <p class="text-3xl font-bold leading-none">{{ countdownDisplay(selectedRoomDetails) }}</p>
+                            <div v-if="detailRoom.isStarting" class="shrink-0 text-right text-amber-300">
+                                <p class="text-3xl font-bold leading-none">{{ countdownDisplay(detailRoom) }}</p>
                                 <p class="text-xs font-bold uppercase tracking-wider">bis Start</p>
                             </div>
                         </div>
 
-                        <div class="mt-4 grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4">
-                            <div class="space-y-2">
+                        <div class="mt-4 grid grid-cols-1 items-center gap-4 lg:grid-cols-[9rem_minmax(0,1fr)]">
+                            <div class="grid grid-cols-2 gap-2 lg:grid-cols-1">
                                 <div class="rounded-xl bg-slate-800/70 px-3 py-2">
                                     <p class="text-sm text-slate-400">Buy-in</p>
-                                    <p class="text-lg font-bold text-slate-100">{{ selectedRoomDetails.buyInDisplay }}</p>
+                                    <p class="text-lg font-bold text-slate-100">{{ detailRoom.buyInDisplay }}</p>
                                 </div>
                                 <div class="rounded-xl border border-emerald-400/35 bg-slate-800/70 px-3 py-2">
                                     <p class="text-sm text-slate-400">Gewinnpool</p>
-                                    <p class="text-lg font-bold text-emerald-300">{{ selectedRoomDetails.prizePoolDisplay }}</p>
+                                    <p class="text-lg font-bold text-emerald-300">{{ detailRoom.prizePoolDisplay }}</p>
                                 </div>
                             </div>
 
                             <!-- Mini-Pokertisch: Grundlage für das spätere Spielfeld -->
-                            <div class="relative mx-2 my-4 h-24">
+                            <div class="relative order-first mx-5 mb-7 mt-4 h-28 lg:order-none lg:mx-2 lg:my-4 lg:h-24">
                                 <div class="absolute inset-0 rounded-[3rem] border-4 border-[#3a2a17] bg-[radial-gradient(ellipse_at_center,#1f5b44_0%,#163f31_70%)]"></div>
                                 <span
-                                    v-for="(seat, index) in tableSeatsOf(selectedRoomDetails)"
+                                    v-for="(seat, index) in tableSeatsOf(detailRoom)"
                                     :key="index"
                                     class="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2"
                                     :class="{
@@ -860,45 +1078,45 @@ onUnmounted(() => {
                                     :title="seat.state === 'me' ? 'Du' : seat.state === 'taken' ? 'Belegt' : 'Frei'"
                                 ></span>
                                 <span
-                                    v-if="participationOf(selectedRoomDetails).isParticipating"
+                                    v-if="participationOf(detailRoom).isParticipating"
                                     class="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-xs font-bold text-amber-300"
                                 >Du</span>
                             </div>
                         </div>
 
-                        <p class="mt-3 text-sm text-slate-400">{{ selectedRoomDetails.feeDisplay }}.</p>
-                        <p v-if="selectedHint(selectedRoomDetails)" class="mt-1 text-sm text-slate-300">
-                            {{ selectedHint(selectedRoomDetails) }}
+                        <p class="mt-3 text-sm text-slate-400">{{ detailRoom.feeDisplay }}.</p>
+                        <p v-if="selectedHint(detailRoom)" class="mt-1 text-sm text-slate-300">
+                            {{ selectedHint(detailRoom) }}
                         </p>
 
                         <div class="mt-4 space-y-2">
                             <button
-                                v-if="actionsOf(selectedRoomDetails).showOpenGame"
+                                v-if="actionsOf(detailRoom).showOpenGame"
                                 type="button"
                                 class="w-full rounded-xl bg-amber-400 px-4 py-2.5 font-bold text-slate-950 transition hover:bg-amber-300"
-                                @click="openGame(selectedRoomDetails)"
+                                @click="openGame(detailRoom)"
                             >
                                 Zum Spieltisch
                             </button>
 
                             <button
-                                v-if="actionsOf(selectedRoomDetails).showJoin"
+                                v-if="actionsOf(detailRoom).showJoin"
                                 type="button"
                                 class="w-full rounded-xl bg-amber-400 px-4 py-2.5 font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-                                :disabled="isActionRunning(selectedRoomDetails) || !canAfford(selectedRoomDetails)"
-                                @click="joinRoom(selectedRoomDetails)"
+                                :disabled="isActionRunning(detailRoom) || !canAfford(detailRoom)"
+                                @click="joinRoom(detailRoom)"
                             >
-                                {{ isActionRunning(selectedRoomDetails) ? 'Prüfe …' : canAfford(selectedRoomDetails) ? 'Beitreten' : 'Guthaben reicht nicht' }}
+                                {{ isActionRunning(detailRoom) ? 'Prüfe …' : canAfford(detailRoom) ? 'Beitreten' : 'Guthaben reicht nicht' }}
                             </button>
 
                             <button
-                                v-if="actionsOf(selectedRoomDetails).showLeave"
+                                v-if="actionsOf(detailRoom).showLeave"
                                 type="button"
                                 class="w-full rounded-xl border border-red-400/50 px-4 py-2.5 font-bold text-red-300 transition hover:border-red-300 hover:text-red-200 disabled:cursor-wait disabled:opacity-60"
-                                :disabled="isActionRunning(selectedRoomDetails)"
-                                @click="leaveRoom(selectedRoomDetails)"
+                                :disabled="isActionRunning(detailRoom)"
+                                @click="leaveRoom(detailRoom)"
                             >
-                                {{ isActionRunning(selectedRoomDetails) ? 'Gebe frei …' : 'Platz freigeben' }}
+                                {{ isActionRunning(detailRoom) ? 'Gebe frei …' : 'Platz freigeben' }}
                             </button>
                         </div>
                     </template>
@@ -907,12 +1125,13 @@ onUnmounted(() => {
                         <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ausgewählter Tisch</p>
                         <p class="mt-2 text-slate-300">Wähle einen Tisch aus der Liste, um Details zu sehen und beizutreten.</p>
                     </template>
-                </section>
+                    </section>
+                </Transition>
 
                 <!-- Lobby-Chat kommt mit der Node.js-Echtzeit-Engine; bis dahin nur als Dev-Platzhalter. -->
                 <section
                     v-if="devMode"
-                    class="flex min-h-[10rem] flex-1 flex-col rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-5"
+                    class="hidden min-h-[10rem] flex-1 flex-col rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-5 lg:flex"
                     title="Nur im Dev-Modus sichtbar"
                 >
                     <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Lobby-Chat</p>
@@ -922,5 +1141,80 @@ onUnmounted(() => {
                 </section>
             </aside>
         </div>
+
+        <!-- Mobil: Filter-Sheet mit allen Gruppen; Chips wirken sofort, der Knopf schließt nur. -->
+        <Transition v-bind="fadeTransition">
+            <div
+                v-if="mobileFilterOpen && !isDesktop"
+                class="fixed inset-0 z-40 bg-black/60"
+                aria-hidden="true"
+                @click="mobileFilterOpen = false"
+            ></div>
+        </Transition>
+
+        <Transition v-bind="sheetTransition">
+            <section
+                v-if="mobileFilterOpen && !isDesktop"
+                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-3xl border-t border-slate-700 bg-slate-900 px-5 pb-5 pt-2.5 shadow-2xl shadow-black/40"
+                aria-label="Filter"
+            >
+                <div class="mx-auto mb-3 h-1.5 w-11 rounded-full bg-slate-600"></div>
+
+                <div class="mb-3 flex items-baseline justify-between">
+                    <h2 class="text-xl font-bold text-slate-100">Filter</h2>
+                    <button
+                        v-if="!filtersAreDefault"
+                        type="button"
+                        class="text-sm text-slate-400 underline underline-offset-4 disabled:cursor-wait"
+                        :disabled="isSavingFilters"
+                        @click="resetFilters"
+                    >
+                        Zurücksetzen
+                    </button>
+                </div>
+
+                <div v-for="group in filterGroups" :key="`sheet-${group.key}`" class="mb-4">
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ group.label }}</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <button
+                            v-for="option in group.options"
+                            :key="option.value"
+                            type="button"
+                            class="rounded-full border px-3.5 py-1.5 text-sm transition disabled:cursor-wait"
+                            :class="filterState[group.key] === option.value
+                                ? 'border-amber-400 bg-amber-400 font-bold text-slate-950'
+                                : 'border-slate-700 bg-slate-800/70 text-slate-300'"
+                            :aria-pressed="filterState[group.key] === option.value"
+                            :disabled="isSavingFilters"
+                            @click="selectFilter(group.key, option.value)"
+                        >
+                            {{ option.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <button
+                    v-if="showOnlyTestRoomsFilter"
+                    type="button"
+                    class="mb-4 rounded-full border px-3.5 py-1.5 text-sm transition disabled:cursor-wait"
+                    :class="filterState.only_test
+                        ? 'border-amber-400 bg-amber-400 font-bold text-slate-950'
+                        : 'border-dashed border-amber-400/50 text-amber-300'"
+                    :aria-pressed="filterState.only_test"
+                    :disabled="isSavingFilters"
+                    @click="toggleOnlyTestRooms"
+                >
+                    Nur Testräume
+                </button>
+
+                <button
+                    type="button"
+                    class="block w-full rounded-xl bg-amber-400 px-4 py-3 font-bold text-slate-950"
+                    @click="mobileFilterOpen = false"
+                >
+                    {{ roomCount }} Tische anzeigen
+                </button>
+            </section>
+        </Transition>
     </section>
 </template>

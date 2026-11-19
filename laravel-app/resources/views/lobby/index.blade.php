@@ -17,10 +17,10 @@
         $activeLobbyTab = $devMode && request('tab') === 'field' ? 'field' : 'rooms';
     @endphp
 
-    <div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-        <section class="flex min-h-0 flex-1 flex-col lg:overflow-hidden">
+    <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+        <section class="flex min-h-0 flex-1 flex-col overflow-hidden">
             @if ($devMode)
-            <nav class="flex flex-wrap items-center gap-2 px-1 pb-2" aria-label="Lobby-Bereiche">
+            <nav class="hidden flex-wrap items-center gap-2 px-1 pb-2 lg:flex" aria-label="Lobby-Bereiche">
                 <a href="{{ route('lobby', request()->except('tab')) }}" class="{{ $activeLobbyTab === 'rooms' ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-950/20' : 'border border-slate-700 bg-slate-950/60 text-slate-500 hover:border-slate-600 hover:text-slate-300' }} inline-flex items-center rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-wide transition">
                     Räume
                 </a>

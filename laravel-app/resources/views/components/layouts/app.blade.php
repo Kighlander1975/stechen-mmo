@@ -30,12 +30,12 @@
             :play-money-balance-units="$playMoneyBalanceUnits"
         />
 
-        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-[1600px] px-6 py-10">
+        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-[1600px] px-4 py-6 sm:px-6 lg:py-10">
             {{ $slot }}
         </main>
 
         <footer class="border-t border-slate-800">
-            <div class="mx-auto max-w-[1600px] px-6 py-6 text-sm text-slate-500">
+            <div class="mx-auto max-w-[1600px] px-4 py-6 text-sm text-slate-500 sm:px-6">
                 Stechen-MMO · Laravel · Vue 3 · Vite
             </div>
         </footer>

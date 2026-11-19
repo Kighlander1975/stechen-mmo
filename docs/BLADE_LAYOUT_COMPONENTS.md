@@ -36,10 +36,15 @@ Beispiel:
 
 - `showWalletPanel`
 - `playMoneyBalanceUnits`
-- `fitViewport` (seit 2026-11-19): ab `lg` ist die Seite genau fensterhoch,
-  Seitenkopf und Footer bleiben sichtbar, `main` füllt den Rest als
-  Flex-Spalte. Genutzt von der Lobby (`:fit-viewport="true"`).
+- `fitViewport` (seit 2026-11-19): Die Seite ist genau bildschirmhoch,
+  `main` füllt den Rest als Flex-Spalte. Ab `lg` bleiben Seitenkopf und
+  Footer sichtbar; darunter app-artig ohne Footer und ohne Innenabstand, und
+  `x-site-header` erhält `mobile-compact` (mobil ohne Seitentitel). Genutzt
+  von der Lobby (`:fit-viewport="true"`).
 - Header-Props wie `headerEyebrow`, `headerTitle`, `headerStatusLabel`, `headerStatusTone`
+
+Mobil (unter `sm`) haben beide App-Layouts (`layouts/app.blade.php` und
+`components/layouts/app.blade.php`) kleinere Seitenränder (`px-4 py-6`).
 
 `@props` in `resources/views/layouts/app.blade.php` allein reicht bei dieser Class Component nicht zuverlässig, wenn die Class Component die Props nicht kennt.
 
