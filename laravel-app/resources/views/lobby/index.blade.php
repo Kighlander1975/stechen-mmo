@@ -7,15 +7,19 @@
     :header-title="'Lobby · Angemeldet als: '.Auth::user()->name"
     header-status-label="Verifiziert"
     header-status-tone="success"
+    :fit-viewport="true"
 >
     @section('title', 'Lobby - '.config('app.name', 'Stechen-MMO'))
 
     @php
-        $activeLobbyTab = request('tab') === 'field' ? 'field' : 'rooms';
+        // Der Spielfeld-Prototyp ist nur im Dev-Modus (APP_ENV=local) erreichbar.
+        $devMode = app()->isLocal();
+        $activeLobbyTab = $devMode && request('tab') === 'field' ? 'field' : 'rooms';
     @endphp
 
-    <div class="flex h-[calc(100vh-285px)] min-h-[520px] flex-col gap-3 overflow-hidden">
-        <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-950/30 p-3 shadow-2xl shadow-black/30">
+    <div class="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+        <section class="flex min-h-0 flex-1 flex-col lg:overflow-hidden">
+            @if ($devMode)
             <nav class="flex flex-wrap items-center gap-2 px-1 pb-2" aria-label="Lobby-Bereiche">
                 <a href="{{ route('lobby', request()->except('tab')) }}" class="{{ $activeLobbyTab === 'rooms' ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-950/20' : 'border border-slate-700 bg-slate-950/60 text-slate-500 hover:border-slate-600 hover:text-slate-300' }} inline-flex items-center rounded-2xl px-4 py-2 text-sm font-black uppercase tracking-wide transition">
                     Räume
@@ -28,6 +32,7 @@
                     </span>
                 </button>
             </nav>
+            @endif
 
             @if ($activeLobbyTab === 'field')
                 <section class="grid min-h-[64vh] flex-1 gap-5 pt-5 xl:grid-cols-5">
@@ -265,7 +270,7 @@
                     </aside>
                 </section>
             @else
-                <div class="flex min-h-0 flex-1 flex-col gap-3 pt-3">
+                <div class="flex min-h-0 flex-1 flex-col gap-3">
                     @php
                         $lobbyRoomBrowserJson = json_encode(
                             $lobbyRoomBrowserProps,

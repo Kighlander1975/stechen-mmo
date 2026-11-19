@@ -65,6 +65,7 @@ class LobbyRoomBrowserPayloadService
                 'canUseTestRoomFilter' => $user !== null
                     && $this->filterPreferenceService->canUseTestRoomFilter($user),
                 'preferencesUrl' => route('lobby.preferences.update'),
+                'devMode' => app()->isLocal(),
             ],
         ];
     }
@@ -157,11 +158,10 @@ class LobbyRoomBrowserPayloadService
             'maxPlayers' => $room->max_players,
             'activePlayersCount' => $activePlayersCount,
             'playersDisplay' => $activePlayersCount.' / '.$room->max_players,
-            'rakeBasisPoints' => $room->rake_basis_points,
-            'rakePercentDisplay' => number_format($room->rake_basis_points / 100, 2, ',', '.').' %',
             'prizePoolUnits' => $prizePoolUnits,
             'prizePoolDisplay' => $this->formatStechenDollar($prizePoolUnits),
-            'feeDisplay' => 'Rake ('.number_format($room->rake_basis_points / 100, 2, ',', '.').' %) bereits entnommen',
+            // Rake-Höhe gehört in die Regeln, nicht in die Lobby (Entscheidung 2026-11-19).
+            'feeDisplay' => 'Rake bereits abgezogen',
             'buyInCategory' => $this->buyInCategory($room->buy_in_units),
             'playerCategory' => $this->playerCategory($room->max_players),
             'currentUserParticipation' => $participation,

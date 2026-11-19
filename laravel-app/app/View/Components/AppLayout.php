@@ -14,6 +14,7 @@ class AppLayout extends Component
         public ?string $headerStatusTone = null,
         public bool $showWalletPanel = false,
         public int $playMoneyBalanceUnits = 0,
+        public bool $fitViewport = false,
     ) {
     }
 

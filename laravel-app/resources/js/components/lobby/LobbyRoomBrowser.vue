@@ -49,7 +49,13 @@ const toasts = ref([]);
 const isPolling = ref(false);
 const pollingError = ref('');
 const lastUpdatedAt = ref(new Date());
+const nowMs = ref(Date.now());
+// Differenz Serverzeit minus Browserzeit, damit der Countdown zur Serveruhr passt.
+const serverOffsetMs = ref(serverOffsetFrom(props.meta));
 let pollingTimer = null;
+let clockTimer = null;
+
+const devMode = computed(() => metaState.value?.devMode === true);
 
 const showOnlyTestRoomsFilter = computed(() => {
     return metaState.value?.canUseTestRoomFilter === true;
@@ -71,45 +77,65 @@ const filterState = reactive({
     only_test: Boolean(props.filters?.only_test),
 });
 
-const appliedFilterState = reactive({
-    status: props.filters?.status || '',
-    start_mode: props.filters?.start_mode || '',
-    buy_in: props.filters?.buy_in || '',
-    players: props.filters?.players || '',
-    only_test: Boolean(props.filters?.only_test),
+const filterGroups = [
+    {
+        key: 'players',
+        label: 'Tisch',
+        options: [
+            { value: '', label: 'Alle' },
+            { value: 'heads_up', label: '2' },
+            { value: 'small', label: '3–4' },
+            { value: 'medium', label: '5–6' },
+            { value: 'large', label: '7–11' },
+        ],
+    },
+    {
+        key: 'buy_in',
+        label: 'Buy-in',
+        options: [
+            { value: '', label: 'Alle' },
+            { value: 'free', label: 'Kostenlos' },
+            { value: 'micro', label: 'bis 500' },
+            { value: 'low', label: 'bis 2.000' },
+            { value: 'medium', label: 'bis 10.000' },
+            { value: 'high', label: 'über 10.000' },
+        ],
+    },
+    {
+        key: 'status',
+        label: 'Status',
+        options: [
+            { value: '', label: 'Alle' },
+            { value: 'open', label: 'Offen' },
+            { value: 'full', label: 'Voll' },
+            { value: 'running', label: 'Läuft' },
+            { value: 'finished', label: 'Beendet' },
+        ],
+    },
+    {
+        key: 'start_mode',
+        label: 'Start',
+        options: [
+            { value: '', label: 'Alle' },
+            { value: 'when_full', label: 'Wenn voll' },
+            { value: 'scheduled', label: 'Geplant' },
+        ],
+    },
+];
+
+const filtersAreDefault = computed(() => {
+    return !filterState.status
+        && !filterState.start_mode
+        && !filterState.buy_in
+        && !filterState.players
+        && !filterState.only_test;
 });
 
+function serverOffsetFrom(meta) {
+    const serverNow = Date.parse(meta?.serverNow || '');
 
-const statusOptions = [
-    { value: '', label: 'Alle' },
-    { value: 'open', label: 'Offen' },
-    { value: 'full', label: 'Voll' },
-    { value: 'running', label: 'Läuft' },
-    { value: 'finished', label: 'Beendet' },
-];
-
-const startModeOptions = [
-    { value: '', label: 'Alle' },
-    { value: 'when_full', label: 'Wenn voll' },
-    { value: 'scheduled', label: 'Geplant' },
-];
-
-const buyInOptions = [
-    { value: '', label: 'Alle' },
-    { value: 'free', label: 'Kostenlos' },
-    { value: 'micro', label: 'Mikro bis 500 St$' },
-    { value: 'low', label: 'Low bis 2.000 St$' },
-    { value: 'medium', label: 'Medium bis 10.000 St$' },
-    { value: 'high', label: 'High ab 10.001 St$' },
-];
-
-const playerOptions = [
-    { value: '', label: 'Alle' },
-    { value: 'heads_up', label: '2 Spieler' },
-    { value: 'small', label: '3-4 Spieler' },
-    { value: 'medium', label: '5-6 Spieler' },
-    { value: 'large', label: '7-11 Spieler' },
-];
+    return Number.isNaN(serverNow) ? 0 : serverNow - Date.now();
+}
 
 function lobbyUrl(overrides = {}) {
     const query = new URLSearchParams();
@@ -135,6 +161,11 @@ function lobbyUrl(overrides = {}) {
 
 const roomList = computed(() => roomsState.value || []);
 
+const allRoomsStartWhenFull = computed(() => {
+    return roomList.value.length > 0
+        && roomList.value.every((room) => room?.startMode === 'when_full');
+});
+
 const selectedRoomDetails = computed(() => {
     if (!selectedRoomCodeState.value) {
         return null;
@@ -143,19 +174,45 @@ const selectedRoomDetails = computed(() => {
     return roomList.value.find((room) => room?.publicCode === selectedRoomCodeState.value) || null;
 });
 
-const selectedRoomParticipation = computed(() => {
-    return selectedRoomDetails.value?.currentUserParticipation || {
-        isParticipating: false,
-        status: null,
-        statusDisplay: null,
-        seatNumber: null,
-        reservedUnits: 0,
-        reservedDisplay: '0 St$',
-    };
+const availableUnits = computed(() => Number(currentUserState.value?.wallet?.availableUnits ?? 0));
+
+// Zwei Bereiche mit gleicher Spaltenaufteilung: oben (fest) Spaltenköpfe und die eigenen Tische,
+// darunter (scrollend) alle übrigen. Eigene Tische bleiben auch bei Filtern sichtbar, weil das
+// Backend sie unabhängig vom Filter mitliefert.
+const tableSections = computed(() => {
+    return [
+        {
+            key: 'pinned',
+            scrolls: false,
+            rooms: roomList.value.filter((room) => participationOf(room).isParticipating),
+        },
+        {
+            key: 'others',
+            scrolls: true,
+            rooms: roomList.value.filter((room) => !participationOf(room).isParticipating),
+        },
+    ];
 });
 
-const selectedRoomActions = computed(() => {
-    return selectedRoomDetails.value?.actions || {
+const tableColumns = ['w-[36%]', 'w-[20%]', 'w-[13%]', 'w-[14%]', 'w-[17%]'];
+
+const lastUpdatedDisplay = computed(() => {
+    return lastUpdatedAt.value
+        ? lastUpdatedAt.value.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        : '-';
+});
+
+function participationOf(room) {
+    return room?.currentUserParticipation || {
+        isParticipating: false,
+        status: null,
+        seatNumber: null,
+        reservedDisplay: '0 St$',
+    };
+}
+
+function actionsOf(room) {
+    return room?.actions || {
         joinUrl: null,
         leaveUrl: null,
         playUrl: null,
@@ -163,60 +220,133 @@ const selectedRoomActions = computed(() => {
         showLeave: false,
         showOpenGame: false,
     };
-});
+}
 
-const selectedRoomActionHint = computed(() => {
-    if (!selectedRoomDetails.value) {
-        return 'Wähle einen Raum aus, um beizutreten oder Details zu sehen.';
+function canAfford(room) {
+    return availableUnits.value >= Number(room?.buyInUnits ?? 0);
+}
+
+function isActionRunning(room) {
+    return Boolean(room?.publicCode) && actionInProgressCode.value === room.publicCode;
+}
+
+function secondsUntilStart(room) {
+    const startsAt = Date.parse(room?.startsAt || '');
+
+    if (Number.isNaN(startsAt)) {
+        return null;
     }
 
-    if (selectedRoomActions.value.showOpenGame) {
-        return 'Der Raum ist gestartet. Du kannst das Spielfenster öffnen.';
+    return Math.max(0, Math.ceil((startsAt - (nowMs.value + serverOffsetMs.value)) / 1000));
+}
+
+function countdownDisplay(room) {
+    const seconds = secondsUntilStart(room);
+
+    if (seconds === null) {
+        return '';
     }
 
-    if (selectedRoomActions.value.showLeave) {
-        return `Du bist auf Platz ${selectedRoomParticipation.value.seatNumber || '-'} dabei. Reserviert: ${selectedRoomParticipation.value.reservedDisplay || '0 St$'}.`;
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+// Sitzplätze für Punkte und Mini-Tisch: eigener Platz, belegte und freie Plätze.
+// Das Backend liefert nur die Anzahl belegter Plätze, daher werden fremde Plätze der Reihe nach gefüllt.
+function seatsOf(room) {
+    const maxPlayers = Math.max(0, Number(room?.maxPlayers ?? 0));
+    const activePlayers = Math.min(maxPlayers, Number(room?.activePlayersCount ?? 0));
+    const participation = participationOf(room);
+    const ownIndex = participation.isParticipating && participation.seatNumber
+        ? Math.min(maxPlayers, Number(participation.seatNumber)) - 1
+        : -1;
+
+    const seats = Array.from({ length: maxPlayers }, (_, index) => (index === ownIndex ? 'me' : 'free'));
+    let othersToFill = activePlayers - (ownIndex >= 0 ? 1 : 0);
+
+    for (let index = 0; index < maxPlayers && othersToFill > 0; index++) {
+        if (seats[index] === 'free') {
+            seats[index] = 'taken';
+            othersToFill--;
+        }
     }
 
-    return 'Der Beitritt wird nach dem Klick serverseitig geprüft.';
-});
+    return seats;
+}
 
-const actionIsRunning = computed(() => {
-    return selectedRoomDetails.value?.publicCode
-        && actionInProgressCode.value === selectedRoomDetails.value.publicCode;
-});
+// Positionen am ovalen Tisch: eigener Platz (sonst Platz 1) unten, die anderen gleichmäßig im Kreis.
+function tableSeatsOf(room) {
+    const seats = seatsOf(room);
+    const count = seats.length;
+    const bottomIndex = Math.max(0, seats.indexOf('me'));
 
-const participationSummary = computed(() => {
-    const waiting = currentUserState.value?.waitingParticipationCount || 0;
-    const running = currentUserState.value?.runningParticipationCount || 0;
+    return seats.map((state, index) => {
+        const angle = (270 + ((index - bottomIndex + count) % count) * (360 / count)) * (Math.PI / 180);
 
-    if (waiting === 0 && running === 0) {
-        return 'Keine aktiven Raumbeitritte.';
-    }
-
-    return `${waiting} Voranmeldung(en), ${running} laufende Teilnahme(n).`;
-});
-
-const detailTitle = computed(() => selectedRoomDetails.value?.name || 'Kein Raum ausgewählt');
-const detailCode = computed(() => selectedRoomDetails.value?.publicCode || '-');
-const detailBuyIn = computed(() => selectedRoomDetails.value?.buyInDisplay || '-');
-const detailPlayers = computed(() => selectedRoomDetails.value?.playersDisplay || '-');
-const detailStart = computed(() => selectedRoomDetails.value?.startDisplay || '-');
-const detailStatus = computed(() => selectedRoomDetails.value?.statusDisplay || '-');
-const detailPrizePool = computed(() => selectedRoomDetails.value?.prizePoolDisplay || '-');
-const detailFee = computed(() => selectedRoomDetails.value?.feeDisplay || 'Raum auswählen');
-
-const lastUpdatedDisplay = computed(() => {
-    if (!lastUpdatedAt.value) {
-        return '-';
-    }
-
-    return lastUpdatedAt.value.toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+        return {
+            state,
+            left: 50 + 47 * Math.cos(angle),
+            top: 50 - 42 * Math.sin(angle),
+        };
     });
-});
+}
+
+function roomRowState(room) {
+    const participation = participationOf(room);
+    const actions = actionsOf(room);
+
+    if (actions.showOpenGame) {
+        return 'open-game';
+    }
+
+    if (participation.isParticipating) {
+        return 'seated';
+    }
+
+    if (actions.showJoin) {
+        return canAfford(room) ? 'join' : 'too-expensive';
+    }
+
+    return 'status';
+}
+
+function selectedSubline(room) {
+    const participation = participationOf(room);
+
+    if (room.isStarting) {
+        return participation.isParticipating ? 'Tisch voll · dein Platz ist verbindlich' : 'Tisch voll · startet gleich';
+    }
+
+    if (room.status === 'running') {
+        return 'Das Spiel läuft';
+    }
+
+    if (room.status === 'finished') {
+        return 'Das Spiel ist beendet';
+    }
+
+    const start = room.startMode === 'when_full' ? 'startet, sobald der Tisch voll ist' : 'geplanter Start';
+
+    return `${room.maxPlayers} Plätze · ${start}`;
+}
+
+function selectedHint(room) {
+    const participation = participationOf(room);
+    const actions = actionsOf(room);
+
+    if (actions.showLeave) {
+        return `Du sitzt auf Platz ${participation.seatNumber || '-'}. Dein Buy-in von ${participation.reservedDisplay} ist reserviert und wird erst beim Spielstart abgebucht.`;
+    }
+
+    if (actions.showJoin && !canAfford(room)) {
+        return 'Dein verfügbares Spielgeld reicht für diesen Tisch nicht aus.';
+    }
+
+    if (actions.showJoin) {
+        return 'Beim Beitreten wird dein Buy-in reserviert und erst beim Spielstart abgebucht.';
+    }
+
+    return '';
+}
 
 function dismissToast(id) {
     toasts.value = toasts.value.filter((toast) => toast.id !== id);
@@ -229,14 +359,7 @@ function pushToast(type, message) {
 
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-    toasts.value = [
-        ...toasts.value,
-        {
-            id,
-            type,
-            message,
-        },
-    ];
+    toasts.value = [...toasts.value, { id, type, message }];
 
     window.setTimeout(() => {
         dismissToast(id);
@@ -257,11 +380,11 @@ function dispatchWalletUpdated(payload) {
 
 function currentFilterParams() {
     return {
-        status: appliedFilterState.status || undefined,
-        start_mode: appliedFilterState.start_mode || undefined,
-        buy_in: appliedFilterState.buy_in || undefined,
-        players: appliedFilterState.players || undefined,
-        only_test: appliedFilterState.only_test ? '1' : undefined,
+        status: filterState.status || undefined,
+        start_mode: filterState.start_mode || undefined,
+        buy_in: filterState.buy_in || undefined,
+        players: filterState.players || undefined,
+        only_test: filterState.only_test ? '1' : undefined,
         room: selectedRoomCodeState.value || undefined,
     };
 }
@@ -276,12 +399,12 @@ function filterSnapshot(filters) {
     };
 }
 
-function syncFilterState(target, filters) {
-    target.status = filters?.status || '';
-    target.start_mode = filters?.start_mode || '';
-    target.buy_in = filters?.buy_in || '';
-    target.players = filters?.players || '';
-    target.only_test = Boolean(filters?.only_test);
+function syncFilterState(filters) {
+    filterState.status = filters?.status || '';
+    filterState.start_mode = filters?.start_mode || '';
+    filterState.buy_in = filters?.buy_in || '';
+    filterState.players = filters?.players || '';
+    filterState.only_test = Boolean(filters?.only_test);
 }
 
 function applyLobbyPayload(payload) {
@@ -292,11 +415,11 @@ function applyLobbyPayload(payload) {
     roomsState.value = [...(payload.rooms || [])];
     metaState.value = { ...(payload.meta || {}) };
     currentUserState.value = { ...(payload.currentUser || {}) };
+    serverOffsetMs.value = serverOffsetFrom(payload.meta);
     selectedRoomCodeState.value = payload.selectedRoomCode || payload.selectedRoom?.publicCode || selectedRoomCodeState.value;
 
     if (payload.filters && metaState.value?.canUseTestRoomFilter !== true && payload.filters.only_test !== true) {
         filterState.only_test = false;
-        appliedFilterState.only_test = false;
     }
 
     dispatchWalletUpdated(payload);
@@ -309,7 +432,9 @@ async function saveFilterPreferences(filters) {
         return;
     }
 
+    const previousFilters = filterSnapshot(filterState);
     isSavingFilters.value = true;
+    syncFilterState(filters);
 
     try {
         const response = await window.axios.put(url, {
@@ -317,25 +442,30 @@ async function saveFilterPreferences(filters) {
             room: null,
         });
 
-        const normalizedFilters = response.data?.filters || response.data?.lobby?.filters;
-
-        syncFilterState(filterState, normalizedFilters);
-        syncFilterState(appliedFilterState, normalizedFilters);
+        syncFilterState(response.data?.filters || response.data?.lobby?.filters);
         selectedRoomCodeState.value = null;
         applyLobbyPayload(response.data?.lobby);
         window.history.replaceState({}, '', lobbyUrl());
         lastUpdatedAt.value = new Date();
         pollingError.value = '';
-        pushToast('success', response.data?.message || 'Lobbyfilter wurden gespeichert.');
     } catch (error) {
+        syncFilterState(previousFilters);
         pushToast('error', error?.response?.data?.message || 'Lobbyfilter konnten nicht gespeichert werden.');
     } finally {
         isSavingFilters.value = false;
     }
 }
 
-function applyFilters() {
-    saveFilterPreferences(filterState);
+function selectFilter(key, value) {
+    if (filterState[key] === value) {
+        return;
+    }
+
+    saveFilterPreferences({ ...filterSnapshot(filterState), [key]: value || null });
+}
+
+function toggleOnlyTestRooms() {
+    saveFilterPreferences({ ...filterSnapshot(filterState), only_test: !filterState.only_test });
 }
 
 function resetFilters() {
@@ -349,7 +479,7 @@ function resetFilters() {
 }
 
 async function refreshLobbyRooms({ silent = true } = {}) {
-    if (isPolling.value || actionInProgressCode.value) {
+    if (isPolling.value || actionInProgressCode.value || isSavingFilters.value) {
         return;
     }
 
@@ -374,12 +504,12 @@ async function refreshLobbyRooms({ silent = true } = {}) {
     }
 }
 
-async function postRoomAction(url, fallbackErrorMessage) {
-    if (!url || !selectedRoomDetails.value?.publicCode) {
+async function postRoomAction(room, url, fallbackErrorMessage) {
+    if (!url || !room?.publicCode || actionInProgressCode.value) {
         return;
     }
 
-    actionInProgressCode.value = selectedRoomDetails.value.publicCode;
+    actionInProgressCode.value = room.publicCode;
 
     try {
         const response = await window.axios.post(url, {}, {
@@ -396,27 +526,23 @@ async function postRoomAction(url, fallbackErrorMessage) {
     }
 }
 
-function joinSelectedRoom() {
-    postRoomAction(
-        selectedRoomActions.value.joinUrl,
-        'Der Raum konnte nicht betreten werden.',
-    );
+function joinRoom(room) {
+    selectedRoomCodeState.value = room.publicCode;
+    postRoomAction(room, actionsOf(room).joinUrl, 'Du konntest dem Tisch nicht beitreten.');
 }
 
-function leaveSelectedRoom() {
-    postRoomAction(
-        selectedRoomActions.value.leaveUrl,
-        'Der Raum konnte nicht verlassen werden.',
-    );
+function leaveRoom(room) {
+    postRoomAction(room, actionsOf(room).leaveUrl, 'Dein Platz konnte nicht freigegeben werden.');
 }
 
-function openSelectedGame() {
-    if (!selectedRoomActions.value.playUrl) {
+function openGame(room) {
+    const playUrl = actionsOf(room).playUrl;
+
+    if (!playUrl) {
         return;
     }
 
-    const roomCode = selectedRoomDetails.value?.publicCode || 'unknown';
-    window.open(selectedRoomActions.value.playUrl, `stechen-game-${roomCode}`);
+    window.open(playUrl, `stechen-game-${room.publicCode || 'unknown'}`);
 }
 
 function roomIsSelected(room) {
@@ -438,29 +564,31 @@ function roomUrl(room) {
 }
 
 function rowAriaLabel(room) {
-    if (roomIsSelected(room)) {
-        return `Auswahl für ${room.name} aufheben`;
-    }
-
-    return `Details zu ${room.name} anzeigen`;
+    return roomIsSelected(room)
+        ? `Auswahl für ${room.name} aufheben`
+        : `Details zu ${room.name} anzeigen`;
 }
 
 onMounted(() => {
     pollingTimer = window.setInterval(() => {
         refreshLobbyRooms();
     }, 3000);
+
+    clockTimer = window.setInterval(() => {
+        nowMs.value = Date.now();
+    }, 1000);
 });
 
 onUnmounted(() => {
-    if (pollingTimer !== null) {
-        window.clearInterval(pollingTimer);
-        pollingTimer = null;
-    }
+    window.clearInterval(pollingTimer);
+    window.clearInterval(clockTimer);
+    pollingTimer = null;
+    clockTimer = null;
 });
 </script>
 
 <template>
-    <section class="relative flex min-h-0 flex-1 flex-col gap-3 overflow-hidden" aria-label="Lobby-Raumbrowser">
+    <section class="relative flex min-h-0 flex-1 flex-col gap-4 tabular-nums" aria-label="Spiellobby">
         <div class="pointer-events-none fixed right-6 top-6 z-50 flex w-full max-w-sm flex-col gap-3">
             <div
                 v-for="toast in toasts"
@@ -486,394 +614,313 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
-        <section class="grid h-[250px] shrink-0 items-stretch gap-3 overflow-hidden lg:grid-cols-2">
-            <article class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-3 shadow-2xl shadow-black/20">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
-                            Räume finden
-                        </p>
-                        <h2 class="mt-0.5 text-lg font-black tracking-tight text-slate-100">
-                            Spielräume filtern
-                        </h2>
-                    </div>
 
-                    <div class="shrink-0 rounded-2xl border border-slate-700 bg-slate-950/60 px-2.5 py-1.5 text-right text-[0.65rem] text-slate-400">
-                        <span class="block text-base font-black leading-none text-slate-100">{{ roomCount }}</span>
-                        Räume
-                    </div>
-                </div>
-
-                <p class="mt-1 text-xs leading-4 text-slate-400">
-                    Wähle passende Räume nach Status, Startmodus, Buy-in und Tischgröße.
-                </p>
-
-                <div class="mt-2 flex flex-1 flex-col justify-between gap-2">
-                    <div class="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-                        <label class="flex items-center gap-3">
-                            <span class="w-20 shrink-0 text-[0.58rem] font-black uppercase tracking-wide text-slate-500">Status</span>
-                            <select
-                                v-model="filterState.status"
-                                class="h-8 w-24 shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-100"
-                            >
-                                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </label>
-
-                        <label class="flex items-center gap-3">
-                            <span class="w-20 shrink-0 text-[0.58rem] font-black uppercase tracking-wide text-slate-500">Startmodus</span>
-                            <select
-                                v-model="filterState.start_mode"
-                                class="h-8 w-24 shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-100"
-                            >
-                                <option v-for="option in startModeOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </label>
-
-                        <label class="flex items-center gap-3">
-                            <span class="w-20 shrink-0 text-[0.58rem] font-black uppercase tracking-wide text-slate-500">Buy-in</span>
-                            <select
-                                v-model="filterState.buy_in"
-                                class="h-8 w-24 shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-100"
-                            >
-                                <option v-for="option in buyInOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </label>
-
-                        <label class="flex items-center gap-3">
-                            <span class="w-20 shrink-0 text-[0.58rem] font-black uppercase tracking-wide text-slate-500">Tischgröße</span>
-                            <select
-                                v-model="filterState.players"
-                                class="h-8 w-24 shrink-0 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-100"
-                            >
-                                <option v-for="option in playerOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </label>
-
-                        <label
-                            v-if="showOnlyTestRoomsFilter"
-                            class="flex items-center gap-3 sm:col-span-2"
-                        >
-                            <input
-                                v-model="filterState.only_test"
-                                type="checkbox"
-                                class="h-4 w-4 rounded border-slate-700 bg-slate-950 text-amber-400 focus:ring-amber-400"
-                            >
-                            <span class="text-xs font-black uppercase tracking-wide text-amber-300">
-                                Nur Testräume anzeigen
-                            </span>
-                            <span class="text-xs text-slate-500">
-                                Kombiniert mit allen aktiven Filtern.
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
+        <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <!-- Tischliste -->
+            <article class="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 shadow-2xl shadow-black/20">
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-800 px-4 py-3">
+                    <div
+                        v-for="group in filterGroups"
+                        :key="group.key"
+                        class="flex flex-wrap items-center gap-1.5"
+                        role="group"
+                        :aria-label="`Filter ${group.label}`"
+                    >
+                        <span class="mr-0.5 text-xs font-bold uppercase tracking-wider text-slate-400">{{ group.label }}</span>
                         <button
+                            v-for="option in group.options"
+                            :key="option.value"
                             type="button"
-                            class="rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-black text-slate-950 transition hover:bg-amber-300"
+                            class="rounded-full border px-2.5 py-0.5 text-[0.8125rem] transition disabled:cursor-wait"
+                            :class="filterState[group.key] === option.value
+                                ? 'border-amber-400 bg-amber-400 font-bold text-slate-950'
+                                : 'border-slate-700 bg-slate-800/70 text-slate-300 hover:border-slate-500 hover:text-slate-100'"
+                            :aria-pressed="filterState[group.key] === option.value"
                             :disabled="isSavingFilters"
-                            @click="applyFilters"
+                            @click="selectFilter(group.key, option.value)"
                         >
-                            {{ isSavingFilters ? 'Speichere...' : 'Filter anwenden' }}
+                            {{ option.label }}
                         </button>
+                    </div>
 
+                    <button
+                        v-if="showOnlyTestRoomsFilter"
+                        type="button"
+                        class="rounded-full border px-2.5 py-0.5 text-[0.8125rem] transition disabled:cursor-wait"
+                        :class="filterState.only_test
+                            ? 'border-amber-400 bg-amber-400 font-bold text-slate-950'
+                            : 'border-dashed border-amber-400/50 text-amber-300 hover:border-amber-300'"
+                        :aria-pressed="filterState.only_test"
+                        :disabled="isSavingFilters"
+                        @click="toggleOnlyTestRooms"
+                    >
+                        Nur Testräume
+                    </button>
+
+                    <div class="ml-auto flex items-center gap-3 text-sm text-slate-400">
                         <button
+                            v-if="!filtersAreDefault"
                             type="button"
-                            class="rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                            class="underline-offset-4 transition hover:text-amber-300 hover:underline disabled:cursor-wait"
                             :disabled="isSavingFilters"
                             @click="resetFilters"
                         >
                             Zurücksetzen
                         </button>
+                        <span><b class="text-slate-100">{{ roomCount }}</b> Tische</span>
                     </div>
                 </div>
-            </article>
 
-            <aside class="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="min-w-0">
-                        <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
-                            Rauminformationen
-                        </p>
-                        <h2 class="mt-1 truncate text-xl font-black tracking-tight text-slate-100">
-                            {{ detailTitle }}
-                        </h2>
-
-                        <p class="mt-1 truncate font-mono text-xs font-semibold text-slate-500">
-                            {{ detailCode }}
+                <div v-if="!roomList.length" class="flex min-h-48 flex-1 items-center justify-center p-10 text-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-100">Keine Tische gefunden</h3>
+                        <p class="mt-2 text-slate-400">
+                            Passe die Filter an oder warte, bis neue Tische bereitgestellt werden.
                         </p>
                     </div>
+                </div>
 
-                    <span
-                        class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                        :class="selectedRoomParticipation.isParticipating
-                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'"
-                    >
-                        {{ selectedRoomParticipation.isParticipating ? 'Dabei' : 'vorbereitet' }}
+                <!-- Beide Bereiche reservieren Platz für den Scrollbalken, damit die Spalten exakt übereinanderstehen. -->
+                <div
+                    v-for="section in (roomList.length ? tableSections : [])"
+                    :key="section.key"
+                    :class="section.scrolls
+                        ? 'max-h-[60vh] min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] lg:max-h-none'
+                        : 'shrink-0 overflow-y-hidden bg-slate-800/40 [scrollbar-gutter:stable]'
+                            + (section.rooms.length ? ' border-b-2 border-amber-400/45' : '')"
+                    :aria-label="section.scrolls ? 'Verfügbare Tische' : 'Deine Tische'"
+                >
+                    <table class="w-full table-fixed text-left">
+                        <colgroup>
+                            <col v-for="width in tableColumns" :key="width" :class="width">
+                        </colgroup>
+
+                        <thead
+                            v-if="!section.scrolls"
+                            class="bg-slate-900 text-xs font-bold uppercase tracking-wider text-slate-400 shadow-[inset_0_-1px_0_rgb(30_41_59)]"
+                        >
+                            <tr>
+                                <th scope="col" class="h-11 px-4">Tisch</th>
+                                <th scope="col" class="h-11 px-4">Plätze</th>
+                                <th scope="col" class="h-11 px-4 text-right">Buy-in</th>
+                                <th scope="col" class="h-11 px-4 text-right">Gewinnpool</th>
+                                <th scope="col" class="h-11 px-4"><span class="sr-only">Aktion</span></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="room in section.rooms"
+                                :key="room.publicCode"
+                                class="cursor-pointer border-t border-slate-800 transition first:border-t-0"
+                                :class="roomIsSelected(room)
+                                    ? 'bg-amber-400/10'
+                                    : 'hover:bg-slate-800/50'"
+                                @click="toggleRoomSelection(room)"
+                            >
+                                <td class="h-14 px-4" :class="{ 'shadow-[inset_4px_0_0_rgb(251_191_36)]': roomIsSelected(room) }">
+                                    <a
+                                        :href="roomUrl(room)"
+                                        class="flex min-w-0 flex-nowrap items-center gap-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                                        :aria-label="rowAriaLabel(room)"
+                                        @click.prevent.stop="toggleRoomSelection(room)"
+                                    >
+                                        <span class="min-w-0 truncate text-base font-bold text-slate-100">{{ room.name }}</span>
+                                        <span
+                                            v-if="participationOf(room).isParticipating"
+                                            class="shrink-0 rounded-full bg-emerald-400/15 px-2 py-0.5 text-xs font-bold text-emerald-300"
+                                        >Dabei</span>
+                                        <span
+                                            v-if="room.isStarting"
+                                            class="shrink-0 whitespace-nowrap rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-bold text-amber-300"
+                                        >Startet {{ countdownDisplay(room) }}</span>
+                                        <span
+                                            v-if="room.isTest"
+                                            class="shrink-0 rounded-full border border-amber-400/30 px-2 py-0.5 text-xs font-bold text-amber-300"
+                                        >Test</span>
+                                        <span
+                                            v-if="devMode"
+                                            class="min-w-0 truncate font-mono text-xs text-slate-500"
+                                            title="Nur im Dev-Modus sichtbar"
+                                        >{{ room.publicCode }}</span>
+                                    </a>
+                                </td>
+
+                                <td class="h-14 whitespace-nowrap px-4">
+                                    <span class="inline-flex flex-nowrap items-center gap-1 align-middle" aria-hidden="true">
+                                        <i
+                                            v-for="(seat, index) in seatsOf(room)"
+                                            :key="index"
+                                            class="block rounded-full border-2"
+                                            :class="[
+                                                room.maxPlayers > 6 ? 'h-2.5 w-2.5' : 'h-3 w-3',
+                                                {
+                                                    'border-amber-400 bg-amber-400': seat === 'me',
+                                                    'border-slate-400 bg-slate-400': seat === 'taken',
+                                                    'border-slate-600': seat === 'free',
+                                                },
+                                            ]"
+                                        ></i>
+                                    </span>
+                                    <span class="ml-2 align-middle text-slate-400">{{ room.playersDisplay }}</span>
+                                </td>
+
+                                <td class="h-14 px-4 text-right text-slate-100">{{ room.buyInDisplay }}</td>
+                                <td class="h-14 px-4 text-right text-slate-100">{{ room.prizePoolDisplay }}</td>
+
+                                <td class="h-14 px-4 text-right">
+                                    <button
+                                        v-if="roomRowState(room) === 'join'"
+                                        type="button"
+                                        class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-100 transition hover:border-amber-400 hover:text-amber-300 disabled:cursor-wait disabled:opacity-60"
+                                        :disabled="isActionRunning(room)"
+                                        @click.stop="joinRoom(room)"
+                                    >
+                                        {{ isActionRunning(room) ? 'Prüfe …' : 'Beitreten' }}
+                                    </button>
+                                    <span
+                                        v-else-if="roomRowState(room) === 'too-expensive'"
+                                        class="inline-block rounded-lg border border-dashed border-slate-700 px-3 py-1 text-sm text-slate-500"
+                                        title="Dein verfügbares Spielgeld reicht nicht aus"
+                                    >Zu teuer</span>
+                                    <button
+                                        v-else-if="roomRowState(room) === 'open-game'"
+                                        type="button"
+                                        class="rounded-lg bg-amber-400 px-3 py-1 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+                                        @click.stop="openGame(room)"
+                                    >
+                                        Zum Tisch
+                                    </button>
+                                    <span v-else-if="roomRowState(room) === 'seated'" class="text-sm text-slate-400">
+                                        Platz {{ participationOf(room).seatNumber || '-' }}
+                                    </span>
+                                    <span v-else class="text-sm text-slate-400">{{ room.statusDisplay }}</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-4 py-2.5 text-sm text-slate-400">
+                    <span v-if="allRoomsStartWhenFull">Alle Tische starten, sobald alle Plätze besetzt sind.</span>
+                    <span v-else></span>
+                    <span :class="pollingError ? 'text-red-300' : ''">
+                        {{ pollingError || `Aktualisiert ${lastUpdatedDisplay}` }}
                     </span>
                 </div>
-
-                <div class="mt-3 flex min-h-0 flex-1 flex-col justify-between overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-950/60 p-3">
-                    <div class="min-h-0 flex-1">
-                        <dl class="grid h-full grid-cols-[repeat(4,minmax(0,1fr))_minmax(11rem,1.45fr)] gap-2 text-sm">
-                            <div class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2">
-                                <dt class="text-[0.58rem] font-black uppercase leading-none tracking-wide text-slate-500">Buy-in</dt>
-                                <dd class="mt-1 truncate font-semibold leading-tight text-slate-300">{{ detailBuyIn }}</dd>
-                            </div>
-
-                            <div class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2">
-                                <dt class="text-[0.58rem] font-black uppercase leading-none tracking-wide text-slate-500">Spieler</dt>
-                                <dd class="mt-1 truncate font-semibold leading-tight text-slate-300">{{ detailPlayers }}</dd>
-                            </div>
-
-                            <div class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2">
-                                <dt class="text-[0.58rem] font-black uppercase leading-none tracking-wide text-slate-500">Start</dt>
-                                <dd class="mt-1 truncate font-semibold leading-tight text-slate-300">{{ detailStart }}</dd>
-                            </div>
-
-                            <div class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2">
-                                <dt class="text-[0.58rem] font-black uppercase leading-none tracking-wide text-slate-500">Status</dt>
-                                <dd class="mt-1 truncate font-semibold leading-tight text-slate-300">{{ detailStatus }}</dd>
-                            </div>
-
-                            <div
-                                class="min-w-0 rounded-xl border px-3 py-2"
-                                :class="selectedRoomDetails
-                                    ? 'border-emerald-400/20 bg-emerald-400/10'
-                                    : 'border-slate-800 bg-slate-950/50'"
-                            >
-                                <dt
-                                    class="text-[0.58rem] font-black uppercase leading-none tracking-wide"
-                                    :class="selectedRoomDetails ? 'text-emerald-300' : 'text-slate-500'"
-                                >
-                                    Gewinnpool
-                                </dt>
-                                <dd
-                                    class="mt-1 truncate font-black leading-tight"
-                                    :class="selectedRoomDetails ? 'text-emerald-100' : 'text-slate-300'"
-                                >
-                                    {{ detailPrizePool }}
-                                </dd>
-                                <dd
-                                    class="mt-0.5 whitespace-normal text-[0.58rem] leading-tight"
-                                    :class="selectedRoomDetails ? 'text-emerald-100/45' : 'text-slate-600'"
-                                >
-                                    {{ detailFee }}
-                                </dd>
-                            </div>
-                        </dl>
-                    </div>
-
-                    <div class="mt-2 shrink-0 space-y-2">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs leading-5 text-slate-500">
-                                    {{ selectedRoomActionHint }}
-                                </p>
-                                <p class="mt-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-600">
-                                    {{ participationSummary }}
-                                </p>
-                            </div>
-
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-if="selectedRoomDetails && selectedRoomActions.showJoin"
-                                    type="button"
-                                    class="rounded-xl bg-amber-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-amber-300 disabled:cursor-wait disabled:opacity-70"
-                                    :disabled="actionIsRunning"
-                                    @click="joinSelectedRoom"
-                                >
-                                    {{ actionIsRunning ? 'Prüfe...' : 'Beitreten' }}
-                                </button>
-
-                                <button
-                                    v-if="selectedRoomDetails && selectedRoomActions.showLeave"
-                                    type="button"
-                                    class="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-2 text-sm font-black text-red-200 transition hover:border-red-300 hover:text-red-100 disabled:cursor-wait disabled:opacity-70"
-                                    :disabled="actionIsRunning"
-                                    @click="leaveSelectedRoom"
-                                >
-                                    {{ actionIsRunning ? 'Verlasse...' : 'Raum verlassen' }}
-                                </button>
-
-                                <button
-                                    v-if="selectedRoomDetails && selectedRoomActions.showOpenGame"
-                                    type="button"
-                                    class="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
-                                    @click="openSelectedGame"
-                                >
-                                    Spiel öffnen
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </aside>
-        </section>
-
-        <section class="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
-            <article class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-4">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
-                            Raumliste
-                        </p>
-                        <h2 class="mt-0.5 text-lg font-black tracking-tight text-slate-100">
-                            Verfügbare Spielräume
-                        </h2>
-                    </div>
-
-                    <div class="rounded-2xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-right text-xs text-slate-400">
-                        <span class="font-black text-slate-100">{{ roomList.length }}</span>
-                        Räume gefunden
-                    </div>
-                </div>
-
-                <div class="mt-2 min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40">
-                    <div v-if="!roomList.length" class="flex h-full min-h-48 items-center justify-center p-10 text-center">
-                        <div>
-                            <h3 class="text-lg font-black text-slate-100">Keine Räume gefunden</h3>
-                            <p class="mt-2 text-sm text-slate-400">
-                                Passe die Filter an oder warte auf automatisch erzeugte Spielräume.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div v-else class="h-full min-h-0 overflow-auto">
-                        <table class="min-w-full table-fixed divide-y divide-slate-800 text-left text-sm">
-                            <thead class="sticky top-0 z-10 bg-slate-950/95 text-[0.65rem] font-black uppercase tracking-wide text-slate-500 backdrop-blur">
-                                <tr>
-                                    <th scope="col" class="w-[38%] px-4 py-2.5">Raum</th>
-                                    <th scope="col" class="w-[13%] px-4 py-2.5 text-right">Buy-in</th>
-                                    <th scope="col" class="w-[11%] px-4 py-2.5 text-right">Spieler</th>
-                                    <th scope="col" class="w-[15%] px-4 py-2.5">Start</th>
-                                    <th scope="col" class="w-[13%] px-4 py-2.5">Status</th>
-                                    <th scope="col" class="w-[10%] px-4 py-2.5 text-right">Details</th>
-                                </tr>
-                            </thead>
-
-                            <tbody class="divide-y divide-slate-900/80">
-                                <tr
-                                    v-for="room in roomList"
-                                    :key="room.publicCode"
-                                    class="cursor-pointer transition focus-within:bg-slate-900/80"
-                                    :class="roomIsSelected(room)
-                                        ? 'bg-amber-400/10 outline outline-1 -outline-offset-1 outline-amber-400/50'
-                                        : room.currentUserParticipation?.isParticipating
-                                            ? 'bg-emerald-400/10 outline outline-1 -outline-offset-1 outline-emerald-400/25 hover:bg-emerald-400/15'
-                                            : 'bg-slate-950/20 hover:bg-slate-900/80'"
-                                >
-                                    <td class="px-4 py-2">
-                                        <a
-                                            :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)"
-                                            class="flex min-w-0 items-baseline gap-2"
-                                            :aria-label="rowAriaLabel(room)"
-                                        >
-                                            <span class="truncate font-black text-slate-100">{{ room.name }}</span>
-                                            <span
-                                                v-if="room.currentUserParticipation?.isParticipating"
-                                                class="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-emerald-300"
-                                            >
-                                                Dabei
-                                            </span>
-                                            <span
-                                                v-if="room.isTest"
-                                                class="shrink-0 rounded-full border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-amber-300"
-                                            >
-                                                Test
-                                            </span>
-                                            <span class="shrink-0 font-mono text-[0.62rem] text-slate-600">{{ room.publicCode }}</span>
-                                        </a>
-                                    </td>
-
-                                    <td class="px-4 py-2 text-right font-bold text-slate-200">
-                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
-                                            {{ room.buyInDisplay }}
-                                        </a>
-                                    </td>
-
-                                    <td class="px-4 py-2 text-right font-semibold text-slate-300">
-                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
-                                            {{ room.playersDisplay }}
-                                        </a>
-                                    </td>
-
-                                    <td class="px-4 py-2 text-slate-300">
-                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
-                                            {{ room.startDisplay }}
-                                        </a>
-                                    </td>
-
-                                    <td class="px-4 py-2">
-                                        <a :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)" class="block" :aria-label="rowAriaLabel(room)">
-                                            <span
-                                                class="inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-black uppercase tracking-wide"
-                                                :class="room.statusTone === 'success'
-                                                    ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
-                                                    : 'border-slate-700 bg-slate-950/70 text-slate-400'"
-                                            >
-                                                {{ room.statusDisplay }}
-                                            </span>
-                                        </a>
-                                    </td>
-
-                                    <td class="px-4 py-2 text-right">
-                                        <a
-                                            :href="roomUrl(room)" @click.prevent="toggleRoomSelection(room)"
-                                            class="font-black"
-                                            :class="roomIsSelected(room) ? 'text-amber-300' : 'text-slate-500'"
-                                            :aria-label="rowAriaLabel(room)"
-                                        >
-                                            {{ roomIsSelected(room) ? '×' : '›' }}
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </article>
 
-            <aside class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-1">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wide text-amber-300">
-                        Globaler Chat
-                    </p>
-                    <h2 class="mt-0.5 text-lg font-black tracking-tight text-slate-100">
-                        Lobby-Chat
-                    </h2>
-                </div>
+            <!-- Rechte Spalte: ausgewählter Tisch und (später) Chat -->
+            <aside class="flex min-h-0 flex-col gap-4">
+                <section class="shrink-0 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20" aria-live="polite">
+                    <template v-if="selectedRoomDetails">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ausgewählter Tisch</p>
+                                <h2 class="truncate text-2xl font-bold text-slate-100">{{ selectedRoomDetails.name }}</h2>
+                                <p class="text-sm text-slate-400">{{ selectedSubline(selectedRoomDetails) }}</p>
+                                <p
+                                    v-if="devMode"
+                                    class="mt-1 inline-block rounded border border-dashed border-slate-600 px-1.5 font-mono text-xs text-slate-500"
+                                    title="Nur im Dev-Modus sichtbar: Raumcode als Prüfsumme"
+                                >{{ selectedRoomDetails.publicCode }}</p>
+                            </div>
 
-                <div class="mt-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                    <div class="rounded-2xl border border-dashed border-slate-700 p-4 text-sm leading-6 text-slate-400">
-                        Chat wird vorbereitet. Nachrichten, Systemhinweise und Raumereignisse erscheinen später hier.
-                    </div>
-                </div>
+                            <div v-if="selectedRoomDetails.isStarting" class="shrink-0 text-right text-amber-300">
+                                <p class="text-3xl font-bold leading-none">{{ countdownDisplay(selectedRoomDetails) }}</p>
+                                <p class="text-xs font-bold uppercase tracking-wider">bis Start</p>
+                            </div>
+                        </div>
 
-                <div class="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-500">
-                    <p>
-                        Letztes Update:
-                        <span class="font-black text-slate-300">{{ lastUpdatedDisplay }}</span>
+                        <div class="mt-4 grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4">
+                            <div class="space-y-2">
+                                <div class="rounded-xl bg-slate-800/70 px-3 py-2">
+                                    <p class="text-sm text-slate-400">Buy-in</p>
+                                    <p class="text-lg font-bold text-slate-100">{{ selectedRoomDetails.buyInDisplay }}</p>
+                                </div>
+                                <div class="rounded-xl border border-emerald-400/35 bg-slate-800/70 px-3 py-2">
+                                    <p class="text-sm text-slate-400">Gewinnpool</p>
+                                    <p class="text-lg font-bold text-emerald-300">{{ selectedRoomDetails.prizePoolDisplay }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Mini-Pokertisch: Grundlage für das spätere Spielfeld -->
+                            <div class="relative mx-2 my-4 h-24">
+                                <div class="absolute inset-0 rounded-[3rem] border-4 border-[#3a2a17] bg-[radial-gradient(ellipse_at_center,#1f5b44_0%,#163f31_70%)]"></div>
+                                <span
+                                    v-for="(seat, index) in tableSeatsOf(selectedRoomDetails)"
+                                    :key="index"
+                                    class="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2"
+                                    :class="{
+                                        'border-amber-400 bg-amber-400': seat.state === 'me',
+                                        'border-slate-300 bg-slate-300': seat.state === 'taken',
+                                        'border-dashed border-slate-300 bg-slate-950': seat.state === 'free',
+                                    }"
+                                    :style="{ left: `${seat.left}%`, top: `${seat.top}%` }"
+                                    :title="seat.state === 'me' ? 'Du' : seat.state === 'taken' ? 'Belegt' : 'Frei'"
+                                ></span>
+                                <span
+                                    v-if="participationOf(selectedRoomDetails).isParticipating"
+                                    class="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-xs font-bold text-amber-300"
+                                >Du</span>
+                            </div>
+                        </div>
+
+                        <p class="mt-3 text-sm text-slate-400">{{ selectedRoomDetails.feeDisplay }}.</p>
+                        <p v-if="selectedHint(selectedRoomDetails)" class="mt-1 text-sm text-slate-300">
+                            {{ selectedHint(selectedRoomDetails) }}
+                        </p>
+
+                        <div class="mt-4 space-y-2">
+                            <button
+                                v-if="actionsOf(selectedRoomDetails).showOpenGame"
+                                type="button"
+                                class="w-full rounded-xl bg-amber-400 px-4 py-2.5 font-bold text-slate-950 transition hover:bg-amber-300"
+                                @click="openGame(selectedRoomDetails)"
+                            >
+                                Zum Spieltisch
+                            </button>
+
+                            <button
+                                v-if="actionsOf(selectedRoomDetails).showJoin"
+                                type="button"
+                                class="w-full rounded-xl bg-amber-400 px-4 py-2.5 font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                                :disabled="isActionRunning(selectedRoomDetails) || !canAfford(selectedRoomDetails)"
+                                @click="joinRoom(selectedRoomDetails)"
+                            >
+                                {{ isActionRunning(selectedRoomDetails) ? 'Prüfe …' : canAfford(selectedRoomDetails) ? 'Beitreten' : 'Guthaben reicht nicht' }}
+                            </button>
+
+                            <button
+                                v-if="actionsOf(selectedRoomDetails).showLeave"
+                                type="button"
+                                class="w-full rounded-xl border border-red-400/50 px-4 py-2.5 font-bold text-red-300 transition hover:border-red-300 hover:text-red-200 disabled:cursor-wait disabled:opacity-60"
+                                :disabled="isActionRunning(selectedRoomDetails)"
+                                @click="leaveRoom(selectedRoomDetails)"
+                            >
+                                {{ isActionRunning(selectedRoomDetails) ? 'Gebe frei …' : 'Platz freigeben' }}
+                            </button>
+                        </div>
+                    </template>
+
+                    <template v-else>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ausgewählter Tisch</p>
+                        <p class="mt-2 text-slate-300">Wähle einen Tisch aus der Liste, um Details zu sehen und beizutreten.</p>
+                    </template>
+                </section>
+
+                <!-- Lobby-Chat kommt mit der Node.js-Echtzeit-Engine; bis dahin nur als Dev-Platzhalter. -->
+                <section
+                    v-if="devMode"
+                    class="flex min-h-[10rem] flex-1 flex-col rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-5"
+                    title="Nur im Dev-Modus sichtbar"
+                >
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Lobby-Chat</p>
+                    <p class="mt-2 text-sm text-slate-500">
+                        Platzhalter: Der Chat kommt mit der Echtzeit-Engine (Node.js).
                     </p>
-                    <p
-                        class="mt-1 font-semibold"
-                        :class="pollingError ? 'text-red-300' : 'text-slate-400'"
-                    >
-                        {{ pollingError || (isPolling ? 'Aktualisiere...' : 'Polling aktiv') }}
-                    </p>
-                </div>
+                </section>
             </aside>
-        </section>
+        </div>
     </section>
 </template>

@@ -228,6 +228,8 @@ Diese Bereiche werden in späteren Reset-Dokumenten behandelt.
 | Leave | Implementiert |
 | Polling | Implementiert |
 | Persistente Lobbyfilter | Implementiert |
+| Lobby-Layout nach Zielbild v3 (2026-11-19) | Implementiert, ohne Leiste „Deine Tische“ |
+| Dev-Only-Elemente (`APP_ENV=local`) | Implementiert |
 | HomeServer-Realtime | Vorbereitet |
 | Chat | Fachlich beschlossen |
 | Presence | Vorbereitet |
@@ -236,6 +238,8 @@ Diese Bereiche werden in späteren Reset-Dokumenten behandelt.
 ---
 
 # 13. Definition of Done
+
+Details zur Oberfläche: `docs/lobby-room-browser-vue-state.md`.
 
 Dieses Dokument beschreibt den aktuellen Lobby-Stand anhand der
 tatsächlichen Implementierung und trennt klar zwischen:

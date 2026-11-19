@@ -36,6 +36,9 @@ Beispiel:
 
 - `showWalletPanel`
 - `playMoneyBalanceUnits`
+- `fitViewport` (seit 2026-11-19): ab `lg` ist die Seite genau fensterhoch,
+  Seitenkopf und Footer bleiben sichtbar, `main` füllt den Rest als
+  Flex-Spalte. Genutzt von der Lobby (`:fit-viewport="true"`).
 - Header-Props wie `headerEyebrow`, `headerTitle`, `headerStatusLabel`, `headerStatusTone`
 
 `@props` in `resources/views/layouts/app.blade.php` allein reicht bei dieser Class Component nicht zuverlässig, wenn die Class Component die Props nicht kennt.

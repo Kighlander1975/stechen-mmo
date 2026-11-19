@@ -5,6 +5,7 @@
     'headerStatusTone' => null,
     'showWalletPanel' => false,
     'playMoneyBalanceUnits' => 0,
+    'fitViewport' => false,
 ])
 
 @php
@@ -39,7 +40,11 @@
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <x-flash-toast />
 
-    <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    {{-- fitViewport: Seite ab lg genau fensterhoch, Footer bleibt sichtbar, Inhalt füllt den Rest (z. B. Lobby). --}}
+    <div @class([
+        'min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950',
+        'lg:flex lg:h-screen lg:min-h-[720px] lg:flex-col' => $fitViewport,
+    ])>
         <x-site-header
             :eyebrow="$headerEyebrow ?? null"
             :header-title="$headerTitle ?? null"
@@ -49,7 +54,11 @@
             :play-money-balance-units="$playMoneyBalanceUnits"
         />
 
-        <main class="mx-auto min-h-[calc(100vh-145px)] max-w-[1600px] px-6 py-10">
+        <main @class([
+            'mx-auto w-full max-w-[1600px] px-6 py-10',
+            'min-h-[calc(100vh-145px)]' => ! $fitViewport,
+            'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col' => $fitViewport,
+        ])>
             @hasSection('content')
                 @yield('content')
             @else
@@ -57,7 +66,7 @@
             @endif
         </main>
 
-        <footer class="border-t border-slate-800">
+        <footer class="shrink-0 border-t border-slate-800">
             <div class="mx-auto max-w-[1600px] px-6 py-6 text-sm text-slate-500">
                 &copy; {{ date('Y') }} Stechen-MMO
             </div>

@@ -1,192 +1,147 @@
 # Lobby-Raumbrowser mit Vue-Island
 
-Stand: 2026-06-24
+Stand: 2026-11-19 (Umbau auf Zielbild v3)
 
 ## Zweck
 
 Diese Datei dokumentiert den aktuellen Stand des Lobby-Raumbrowsers in Stechen-MMO.
 
-Die Lobby ist aktuell der vorbereitete Einstiegspunkt für Spielräume. Sie zeigt verfügbare Räume, Filter, Raumdetails und einen vorbereiteten Chatbereich. Der tatsächliche Beitritt, die Reservierung von Buy-ins und der spätere Spielstart sind noch nicht produktiv aktiv, aber das UI ist darauf vorbereitet.
+Die Lobby zeigt die systemseitig bereitgestellten Spieltische. Beitreten
+(mit Buy-in-Reservierung), Platz freigeben und das Öffnen des Spielfensters
+sind aktiv. Das Zielbild ist Entwurf v3 (`_docs/images/lobby-entwurf-v3.png`,
+nicht versioniert), vom Projektinhaber am 2026-11-19 als Basis bestätigt.
 
-Diese Datei ergänzt den älteren Spielfeld-Prototyp unter:
-
-```text
-docs/lobby-field-prototype.md
-```
-
-Der Spielfeld-Prototyp beschreibt die spätere Sitzplatz- und Sektorlogik. Diese Datei beschreibt dagegen den aktuellen Raumbrowser, die Raumliste, die Rauminformationen und die Vue-basierte UI-Struktur.
+Der ältere Spielfeld-Prototyp ist unter `docs/lobby-field-prototype.md`
+beschrieben und nur im Dev-Modus erreichbar.
 
 ---
 
 ## Aktueller Status
 
-Der Lobby-Raumbrowser ist als Vue-Island umgesetzt.
+Implementiert:
 
-Aktuell vorhanden:
+- Tischliste mit fester Kopfzeile und eigenem Scrollbereich, der auf großen
+  Bildschirmen mit der Fensterhöhe wächst.
+- Filter als kleine Chips, die sofort wirken und pro Benutzer gespeichert
+  werden: Tischgröße (2 / 3–4 / 5–6 / 7–11), Buy-in, Status, Startmodus sowie
+  „Nur Testräume“ für berechtigte Phase-3-Testbenutzer. „Zurücksetzen“
+  erscheint nur bei aktivem Filter.
+- Pro Zeile: Name mit Hinweisen (Dabei, Startet m:ss, Test), Plätze als
+  Punkte (gelb = eigener Platz, grau = belegt, Ring = frei), Buy-in,
+  Gewinnpool und eine Aktion (Beitreten, Zu teuer, Platz n, Zum Tisch oder
+  Status).
+- Rechte Spalte: ausgewählter Tisch mit Buy-in, Gewinnpool („Rake bereits
+  abgezogen“, ohne Prozentangabe), Countdown während der Startphase, Mini-
+  Pokertisch mit Sitzplätzen und den Aktionen Beitreten, Platz freigeben und
+  Zum Spieltisch.
+- Aktualisierung per Polling alle 3 Sekunden; Fußzeile zeigt die Uhrzeit der
+  letzten Aktualisierung oder einen Fehlerhinweis.
+- Countdown läuft clientseitig sekundengenau und wird über `meta.serverNow`
+  an die Serveruhr angeglichen.
 
-- Raumfilter für Status, Buy-in, Startmodus und Tischgröße.
-- Liste verfügbarer Spielräume.
-- Detailbereich für den ausgewählten Raum.
-- Clientseitige Auswahl eines Raums ohne Seitenreload.
-- Erneuter Klick auf den ausgewählten Raum hebt die Auswahl wieder auf.
-- Vorbereiteter globaler Lobby-Chat als Platzhalter.
-- Deaktivierter Beitreten-Button als Vorbereitung für spätere Spielteilnahme.
-- Responsive Tailwind-Struktur für die Hauptbereiche der Lobby.
+Nur im Dev-Modus (`APP_ENV=local`, Payload `meta.devMode`):
 
-Noch nicht produktiv aktiv:
+- Raumcode (`publicCode`) als Prüfsumme in Liste und Details
+- Platzhalter für den Lobby-Chat
+- Reiter „Spielfeld · Test“ (Spielfeld-Prototyp)
 
-- echter Raumbeitritt;
-- Buy-in-Reservierung;
-- Spielstart;
-- laufende Spielzustände;
-- echter Chat;
-- Homeserver-/WebSocket-Realtime-Anbindung.
+Noch nicht umgesetzt (Plan P4 bis P6, siehe `_docs/ai_context/03_NEXT_SESSION.md`):
+
+- Leiste „Deine Tische · x von 3“ mit allen eigenen Anmeldungen unabhängig
+  vom Filter
+- Hinweis „wird freigegeben, sobald X startet“ (setzt die Führungsregel
+  voraus)
+- Namen der Mitspieler am Mini-Tisch (das Backend liefert nur die Anzahl)
+- deutsche statt englischer Fehlermeldungen beim Beitreten
+- echter Chat (kommt mit der Node.js-Echtzeit-Engine)
 
 ---
 
 ## Relevante Dateien
 
-Aktuell besonders relevant:
-
 ```text
 laravel-app/resources/js/components/lobby/LobbyRoomBrowser.vue
+laravel-app/resources/views/lobby/index.blade.php
+laravel-app/app/Services/Lobby/LobbyRoomBrowserPayloadService.php
+laravel-app/tests/Feature/GameRoomLobbyTest.php
 laravel-app/tailwind.config.js
 ```
 
-Der Vue-Raumbrowser wird als Insel in die Laravel/Blade-Seite eingebunden. Laravel bleibt weiterhin die autoritative Quelle für Räume, Filter und spätere Spielzustände.
-
-Die genaue Blade-Mount-Datei und Controller-/Service-Dateien sollten bei konkreten Änderungen am Datenfluss erneut geprüft werden, statt aus dieser Dokumentation blind abgeleitet zu werden.
+Laravel bleibt die autoritative Quelle für Räume, Filter, Teilnahmen und
+Wallet. Die Vue-Komponente prüft das Guthaben nur zur Anzeige
+(„Zu teuer“, „Guthaben reicht nicht“); die verbindliche Prüfung erfolgt
+serverseitig beim Beitritt.
 
 ---
 
 ## Entwicklungshistorie
 
-Der Lobby-Raumbrowser entstand schrittweise.
-
-### 1. Blade-/Server-rendered Grundlage
-
-Zunächst wurde die Lobby stärker Blade-/Server-rendered gedacht. Die Raumliste und Raumdetails konnten über Links und Query-Parameter dargestellt werden.
-
-Dieses Modell ist robust als Fallback und passt gut zu Laravel, führt aber bei Detailwechseln schnell zu Seitenreloads oder stärker serverseitiger Zustandsführung.
-
-### 2. Umbau auf Vue-Island
-
-Der Raumbrowser wurde anschließend in eine Vue-Komponente verschoben.
-
-Ziel:
-
-- bessere Interaktion im Browser;
-- Raumdetails ohne Seitenreload aktualisieren;
-- Layout und Zustand an einer klaren Stelle kapseln;
-- Laravel weiterhin als Datenquelle behalten;
-- keine vollständige SPA/Inertia-Architektur einführen.
-
-Das Projekt bleibt weiterhin Blade-basiert mit Vue-3-Inselarchitektur. Inertia.js ist nicht Projektbasis.
+1. Blade-/Server-rendered Grundlage mit Links und Query-Parametern.
+2. Umbau auf eine Vue-Island-Komponente (Blade-basiert, keine SPA, kein
+   Inertia).
+3. 2026-11-19: Umbau auf Zielbild v3 (Lesbarkeit, Chips, Tischliste mit
+   Aktionen, rechte Spalte mit Mini-Pokertisch, Dev-Only-Elemente).
 
 ---
 
 ## Aktuelles Layout
 
-Der aktuelle Lobby-Raumbrowser ist in zwei Hauptzeilen gegliedert.
-
-### Obere Zeile
-
 ```text
-Filter | Rauminformationen
+[ Tischliste (Filter-Chips, Tabelle, Fußzeile) ] [ Ausgewählter Tisch ]
+[                                              ] [ Chat (nur Dev)     ]
 ```
 
-Technisch:
+Technisch `lg:grid-cols-[minmax(0,1fr)_24rem]`. Die Lobby nutzt die
+Layout-Option `fit-viewport` von `x-app-layout`: Ab `lg` ist die Seite genau
+fensterhoch (mindestens 720px), Seitenkopf und Footer bleiben immer sichtbar,
+und der Lobby-Bereich füllt den Rest. Die Tischliste scrollt intern.
+Unterhalb von `lg` stapeln sich die Bereiche, die Seite scrollt normal und
+die Liste ist auf 60vh begrenzt.
+
+---
+
+## Eigene Tische angeheftet
+
+Tische, an denen der Benutzer teilnimmt, stehen immer oben in der Liste. Das
+Backend (`LobbyRoomQueryService::getFilteredRooms`) liefert sie unabhängig vom
+Filter zuerst; abgesichert durch
+`test_lobby_payload_lists_joined_rooms_first_even_when_filters_hide_them`.
+
+Im Frontend (`tableSections` in `LobbyRoomBrowser.vue`) besteht die Liste aus
+zwei Bereichen mit derselben Spaltenaufteilung (`colgroup`):
 
 ```text
-lg:grid-cols-2
+[ Spaltenköpfe                       ]  fest
+[ eigene Tische (leicht hinterlegt)  ]  fest
+=========== gelbe Trennlinie ==========
+[ übrige Tische                     |]  scrollt, Scrollbalken nur hier
 ```
 
-Die Filter und die Rauminformationen stehen ab großem Layout nebeneinander.
-
-### Untere Zeile
-
-```text
-Raumliste breit | Chat schmal
-```
-
-Technisch:
-
-```text
-lg:grid-cols-5
-lg:col-span-4 für die Raumliste
-lg:col-span-1 für den Chat
-```
-
-Die Raumliste nimmt den Hauptbereich ein. Der Chat ist aktuell bewusst schmal und als vorbereiteter Platzhalter umgesetzt.
+Beide Bereiche reservieren mit `scrollbar-gutter: stable` gleich viel Platz
+für den Scrollbalken, damit die Spalten exakt übereinanderstehen. Der
+Zeilenaufbau existiert nur einmal (gemeinsame Schleife über beide Bereiche).
+Namen brechen nicht um, sondern werden gekürzt.
 
 ---
 
 ## Raumauswahl
 
-Die Raumauswahl erfolgt aktuell clientseitig in Vue.
-
-Der ausgewählte Raumcode wird lokal in der Komponente gehalten. Die Details werden aus der vorhandenen Raumliste ermittelt.
-
-Verhalten:
-
-- Klick auf einen Raum wählt ihn aus.
-- Die Detailkarte aktualisiert sich ohne Seitenreload.
-- Klick auf den bereits ausgewählten Raum hebt die Auswahl auf.
-- Die alten Raum-URLs bleiben als Fallback-/Deep-Link-Struktur im Code erhalten.
-- Der Klick wird in der Vue-Komponente aktuell per `@click.prevent` abgefangen.
-
-Damit verbindet der aktuelle Stand eine serverseitig vorbereitete Datenbasis mit einer clientseitigen UI-Interaktion.
+- Klick auf eine Zeile wählt den Tisch aus, erneuter Klick hebt die Auswahl
+  auf.
+- Der Name ist zusätzlich ein Link mit der alten Deep-Link-URL
+  (`/lobby?room=…`) und per Tastatur erreichbar.
+- Beitreten direkt in der Zeile wählt den Tisch gleichzeitig aus.
 
 ---
 
-## Leerer Detailzustand
+## Plätze und Mini-Pokertisch
 
-Wenn kein Raum ausgewählt ist, sieht die Rauminformationskarte bewusst genauso aus wie bei einem ausgewählten Raum.
-
-Der leere Zustand verwendet Platzhalterwerte statt eines abweichenden Hinweisblocks.
-
-Beabsichtigtes Verhalten:
-
-```text
-RAUMINFORMATIONEN                     VORBEREITET
-Kein Raum ausgewählt
--
-
-BUY-IN        -
-SPIELER       -
-START         -
-STATUS        -
-GEWINNPOOL    -
-              Raum auswählen
-
-Beitritt, Reservierung und Spielstart folgen später.
-Beitreten deaktiviert
-```
-
-Grund:
-
-- kein Layoutsprung beim Auswählen eines Raums;
-- gleiche Kartenstruktur für leeren und gefüllten Zustand;
-- optisch ruhiger und konsistenter;
-- spätere Beitrittslogik kann denselben Detailbereich weiterverwenden.
-
----
-
-## Beitreten-Button
-
-Der Button ist aktuell vorbereitet, aber deaktiviert.
-
-Er soll später erst aktiv werden, wenn die fachlichen Bedingungen geklärt und implementiert sind, zum Beispiel:
-
-- Benutzer ist authentifiziert und verifiziert;
-- Raum ist offen;
-- Raum ist nicht voll;
-- Wallet/Spielgeld reicht aus;
-- Buy-in kann reserviert werden;
-- Benutzer ist nicht bereits im Raum;
-- Spielstart-/Warteschlangenlogik ist definiert.
-
-Bis dahin bleibt der Button ein UI-Platzhalter.
+Das Backend liefert pro Tisch nur `activePlayersCount`, `maxPlayers` und den
+eigenen `seatNumber`. Der eigene Platz wird an seiner Platznummer markiert,
+fremde belegte Plätze werden der Reihe nach aufgefüllt. Am Mini-Tisch sitzt
+der eigene Platz (sonst Platz 1) immer unten, die übrigen Plätze sind
+gleichmäßig im Oval verteilt. Die Darstellung als Pokertisch ist laut
+Projektinhaber die Grundlage für das spätere Spielfeld.
 
 ---
 
